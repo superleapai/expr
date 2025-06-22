@@ -311,6 +311,9 @@ func ToInt(a any) int {
 		}
 		return 0
 	case string:
+		if x == "" {
+			return 0 // empty string converts to 0
+		}
 		if i, err := strconv.Atoi(x); err == nil {
 			return i
 		}
@@ -358,6 +361,9 @@ func ToInt64(a any) int64 {
 		}
 		return 0
 	case string:
+		if x == "" {
+			return 0 // empty string converts to 0
+		}
 		if i, err := strconv.ParseInt(x, 10, 64); err == nil {
 			return i
 		}
@@ -405,6 +411,9 @@ func ToFloat64(a any) float64 {
 		}
 		return 0
 	case string:
+		if x == "" {
+			return 0.0 // empty string converts to 0.0
+		}
 		if f, err := strconv.ParseFloat(x, 64); err == nil {
 			return f
 		}

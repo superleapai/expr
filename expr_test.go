@@ -2806,8 +2806,8 @@ func TestArithmeticAndComparisonOperators(t *testing.T) {
 		{"'a' < 'b'", true, false},
 		{"true == true", true, false},
 		// Illegal pairs
-		{"true + 1", nil, true},
-		{"1 + true", nil, true},
+		{"true + 1", 2, false},
+		{"1 + true", 2, false},
 		{"true < 1", nil, true},
 		{"1 < true", nil, true},
 		{"'a' - 'b'", nil, true},

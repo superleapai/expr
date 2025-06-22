@@ -2136,40 +2136,32 @@ func MoreOrEqual(a, b interface{}) bool {
 }
 
 func Add(a, b interface{}) interface{} {
-	// Handle nil values first
+	// Handle nil values with proper string concatenation behavior
 	if IsNil(a) && IsNil(b) {
-		return 0
+		return 0 // nil + nil = 0
 	}
-	if a == nil {
+	if IsNil(a) {
 		switch y := b.(type) {
 		case string:
-			return "" + y
-		case bool, uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
-			return 0 + ToInt(y)
-		case float32:
-			return 0.0 + float64(y)
-		case float64:
-			return 0.0 + y
+			return "" + y // nil + string = "" + string (string concatenation)
+		case float32, float64:
+			return ToFloat64(a) + ToFloat64(y) // nil + float = 0.0 + float
 		default:
-			return fmt.Sprint(nil) + fmt.Sprint(b)
+			return ToInt(a) + ToInt(y) // nil + numeric = 0 + numeric
 		}
 	}
-	if b == nil {
+	if IsNil(b) {
 		switch x := a.(type) {
 		case string:
-			return x + ""
-		case bool, uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
-			return 0 + ToInt(x)
-		case float32:
-			return float64(x) + 0.0
-		case float64:
-			return x + 0.0
+			return x + "" // string + nil = string + "" (string concatenation)
+		case float32, float64:
+			return ToFloat64(x) + ToFloat64(b) // float + nil = float + 0.0
 		default:
-			return fmt.Sprint(a) + fmt.Sprint(nil)
+			return ToInt(x) + ToInt(b) // numeric + nil = numeric + 0
 		}
 	}
 
-	// Handle string concatenation
+	// Handle string concatenation - if either operand is string, concatenate
 	if str, ok := a.(string); ok {
 		return str + fmt.Sprint(b)
 	}
@@ -2177,7 +2169,30 @@ func Add(a, b interface{}) interface{} {
 		return fmt.Sprint(a) + str
 	}
 
-	// Handle numeric operations
+	// Handle boolean + boolean operations
+	if aBool, aOk := a.(bool); aOk {
+		if bBool, bOk := b.(bool); bOk {
+			return ToInt(aBool) + ToInt(bBool) // true + true = 1 + 1 = 2
+		}
+		// bool + numeric - check if numeric is float
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(aBool) + ToFloat64(b)
+		default:
+			return ToInt(aBool) + ToInt(b)
+		}
+	}
+	if bBool, bOk := b.(bool); bOk {
+		// numeric + bool - check if numeric is float
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) + ToFloat64(bBool)
+		default:
+			return ToInt(a) + ToInt(bBool)
+		}
+	}
+
+	// Handle numeric operations with type promotion
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -2503,13 +2518,6 @@ func Add(a, b interface{}) interface{} {
 		case float64:
 			return float64(x) + float64(y)
 		}
-	case string:
-		switch y := b.(type) {
-		case string:
-			return x + y
-		case uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
-			return x + fmt.Sprintf("%v", y)
-		}
 	case time.Time:
 		switch y := b.(type) {
 		case time.Duration:
@@ -2527,72 +2535,73 @@ func Add(a, b interface{}) interface{} {
 }
 
 func Subtract(a, b interface{}) interface{} {
-	// Handle nil values first
+	// Handle nil values first - convert to numeric operations
 	if IsNil(a) && IsNil(b) {
-		return 0
+		return 0 // nil - nil = 0 - 0 = 0
 	}
-	if a == nil {
-		switch y := b.(type) {
-		case string:
-			return 0 - len(y) // Convert string length to numeric subtraction
-		case uint:
-			return 0 - int(y)
-		case uint8:
-			return 0 - int(y)
-		case uint16:
-			return 0 - int(y)
-		case uint32:
-			return 0 - int(y)
-		case uint64:
-			return 0 - int(y)
-		case int:
-			return 0 - y
-		case int8:
-			return 0 - int(y)
-		case int16:
-			return 0 - int(y)
-		case int32:
-			return 0 - int(y)
-		case int64:
-			return 0 - int(y)
-		case float32:
-			return 0.0 - float64(y)
-		case float64:
-			return 0.0 - y
+	if IsNil(a) {
+		// nil - X: convert based on X's type to preserve precision
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(a) - ToFloat64(b) // nil - float = 0.0 - float
 		default:
-			return 0 // Default to 0 for unknown types
+			return ToInt(a) - ToInt(b) // nil - numeric = 0 - numeric
 		}
 	}
-	if b == nil {
-		switch x := a.(type) {
-		case string:
-			return len(x) - 0 // Convert string length to numeric subtraction
-		case uint:
-			return int(x) - 0
-		case uint8:
-			return int(x) - 0
-		case uint16:
-			return int(x) - 0
-		case uint32:
-			return int(x) - 0
-		case uint64:
-			return int(x) - 0
-		case int:
-			return x - 0
-		case int8:
-			return int(x) - 0
-		case int16:
-			return int(x) - 0
-		case int32:
-			return int(x) - 0
-		case int64:
-			return int(x) - 0
-		case float32:
-			return float64(x) - 0.0
-		case float64:
-			return x - 0.0
+	if IsNil(b) {
+		// X - nil: convert based on X's type to preserve precision
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) - ToFloat64(b) // float - nil = float - 0.0
 		default:
-			return 0 // Default to 0 for unknown types
+			return ToInt(a) - ToInt(b) // numeric - nil = numeric - 0
+		}
+	}
+
+	// Handle boolean operations
+	if aBool, aOk := a.(bool); aOk {
+		if bBool, bOk := b.(bool); bOk {
+			return ToInt(aBool) - ToInt(bBool) // true - false = 1 - 0 = 1
+		}
+		// bool - numeric - check if numeric is float
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(aBool) - ToFloat64(b)
+		default:
+			return ToInt(aBool) - ToInt(b)
+		}
+	}
+	if bBool, bOk := b.(bool); bOk {
+		// numeric - bool - check if numeric is float
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) - ToFloat64(bBool)
+		default:
+			return ToInt(a) - ToInt(bBool)
+		}
+	}
+
+	// Handle string operations - convert to numeric or error
+	if aStr, aOk := a.(string); aOk {
+		if bStr, bOk := b.(string); bOk {
+			// string - string: convert both to numbers
+			return ToInt(aStr) - ToInt(bStr)
+		}
+		// string - numeric: convert string to number, match numeric type
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(aStr) - ToFloat64(b)
+		default:
+			return ToInt(aStr) - ToInt(b)
+		}
+	}
+	if bStr, bOk := b.(string); bOk {
+		// numeric - string: convert string to number, match numeric type
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) - ToFloat64(bStr)
+		default:
+			return ToInt(a) - ToInt(bStr)
 		}
 	}
 
@@ -2939,9 +2948,56 @@ func Subtract(a, b interface{}) interface{} {
 }
 
 func Multiply(a, b interface{}) interface{} {
-	// Handle nil values first
-	if a == nil || b == nil {
-		return 0 // Any multiplication with nil results in 0
+	// Handle nil values first - any multiplication with nil results in 0
+	if IsNil(a) || IsNil(b) {
+		return 0
+	}
+
+	// Handle boolean operations
+	if aBool, aOk := a.(bool); aOk {
+		if bBool, bOk := b.(bool); bOk {
+			return ToInt(aBool) * ToInt(bBool) // true * false = 1 * 0 = 0
+		}
+		// bool * numeric - check if numeric is float
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(aBool) * ToFloat64(b)
+		default:
+			return ToInt(aBool) * ToInt(b)
+		}
+	}
+	if bBool, bOk := b.(bool); bOk {
+		// numeric * bool - check if numeric is float
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) * ToFloat64(bBool)
+		default:
+			return ToInt(a) * ToInt(bBool)
+		}
+	}
+
+	// Handle string operations - convert to numeric or error
+	if aStr, aOk := a.(string); aOk {
+		if bStr, bOk := b.(string); bOk {
+			// string * string: convert both to numbers
+			return ToInt(aStr) * ToInt(bStr)
+		}
+		// string * numeric: convert string to number, match numeric type
+		switch b.(type) {
+		case float32, float64:
+			return ToFloat64(aStr) * ToFloat64(b)
+		default:
+			return ToInt(aStr) * ToInt(b)
+		}
+	}
+	if bStr, bOk := b.(string); bOk {
+		// numeric * string: convert string to number, match numeric type
+		switch a.(type) {
+		case float32, float64:
+			return ToFloat64(a) * ToFloat64(bStr)
+		default:
+			return ToInt(a) * ToInt(bStr)
+		}
 	}
 
 	// Handle numeric operations
@@ -3335,8 +3391,28 @@ func Divide(a, b interface{}) float64 {
 	if b == nil {
 		return 0.0 // Division by nil is treated as division by 0, which results in 0
 	}
+	// Handle cross-type operations - convert booleans and strings to numbers
+	switch x := a.(type) {
+	case bool:
+		a = ToInt(x)
+	case string:
+		a = ToFloat64(x) // Convert to float64 since division always returns float64
+	}
+	switch x := b.(type) {
+	case bool:
+		b = ToInt(x)
+	case string:
+		b = ToFloat64(x) // Convert to float64 since division always returns float64
+	}
 
-	// Handle numeric operations
+	// Check for division by zero after type conversion
+	bVal := ToFloat64(b)
+	if bVal == 0.0 {
+		panic("integer divide by zero")
+	}
+
+	// Return the division result
+	return ToFloat64(a) / bVal
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {

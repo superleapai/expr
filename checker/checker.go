@@ -350,6 +350,19 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 		if isTime(l) && isTime(r) {
 			return durationNature
 		}
+		if isBool(l) || isNumber(r) {
+			if isFloat(r) {
+				return floatNature
+			}
+			return integerNature
+		}
+
+		if isBool(r) || isNumber(l) {
+			if isFloat(l) {
+				return floatNature
+			}
+			return integerNature
+		}
 		if isTime(l) && isDuration(r) {
 			return timeNature
 		}
@@ -408,6 +421,17 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 		if isNil(l) || isNil(r) {
 			return floatNature
 		}
+		if isBool(l) || isNumber(r) {
+			return floatNature
+		}
+
+		if isBool(l) && isString(r) {
+			return floatNature
+		}
+		if isString(l) && isBool(r) {
+			return floatNature
+		}
+
 		// Allow division on unknown or mixed types
 		if isUnknown(l) || isUnknown(r) {
 			return floatNature
@@ -447,6 +471,7 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 		if isNil(l) || isNil(r) {
 			return integerNature
 		}
+
 		// Allow modulo on unknown or mixed types
 		if isUnknown(l) || isUnknown(r) {
 			return integerNature
@@ -463,6 +488,19 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 		}
 		if isString(l) || isString(r) {
 			return stringNature
+		}
+		if isBool(l) && isNumber(r) {
+			if isFloat(r) {
+				return floatNature
+			}
+			return integerNature
+		}
+
+		if isBool(r) && isNumber(l) {
+			if isFloat(l) {
+				return floatNature
+			}
+			return integerNature
 		}
 		if isTime(l) && isDuration(r) {
 			return timeNature
