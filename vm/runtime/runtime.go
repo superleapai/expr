@@ -190,7 +190,7 @@ func In(needle any, array any) bool {
 		for i := 0; i < v.Len(); i++ {
 			value := v.Index(i)
 			if value.IsValid() {
-				if Equal(value.Interface(), needle) {
+				if EqualIn(needle, value.Interface()) {
 					return true
 				}
 			}

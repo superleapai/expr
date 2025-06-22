@@ -826,6 +826,461 @@ func Equal(a, b interface{}) bool {
 	return reflect.DeepEqual(a, b)
 }
 
+// EqualIn performs JavaScript-like equality comparison for "in" operations
+// This is specifically designed for array/slice membership testing
+func EqualIn(a, b interface{}) bool {
+	// Handle nil values first - nil only equals nil
+	if IsNil(a) && IsNil(b) {
+		return true
+	}
+	if IsNil(a) || IsNil(b) {
+		return false
+	}
+
+	// Handle numeric operations with JavaScript-like coercion
+	switch x := a.(type) {
+	case uint:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			// Try numeric conversion first
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			// String comparison
+			return false
+		}
+	case uint8:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case uint16:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case uint32:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case uint64:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case int:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case int8:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case int16:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case int32:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case int64:
+		switch y := b.(type) {
+		case uint:
+			return int(x) == int(y)
+		case uint8:
+			return int(x) == int(y)
+		case uint16:
+			return int(x) == int(y)
+		case uint32:
+			return int(x) == int(y)
+		case uint64:
+			return int(x) == int(y)
+		case int:
+			return int(x) == int(y)
+		case int8:
+			return int(x) == int(y)
+		case int16:
+			return int(x) == int(y)
+		case int32:
+			return int(x) == int(y)
+		case int64:
+			return int(x) == int(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case float32:
+		switch y := b.(type) {
+		case uint:
+			return float64(x) == float64(y)
+		case uint8:
+			return float64(x) == float64(y)
+		case uint16:
+			return float64(x) == float64(y)
+		case uint32:
+			return float64(x) == float64(y)
+		case uint64:
+			return float64(x) == float64(y)
+		case int:
+			return float64(x) == float64(y)
+		case int8:
+			return float64(x) == float64(y)
+		case int16:
+			return float64(x) == float64(y)
+		case int32:
+			return float64(x) == float64(y)
+		case int64:
+			return float64(x) == float64(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case float64:
+		switch y := b.(type) {
+		case uint:
+			return float64(x) == float64(y)
+		case uint8:
+			return float64(x) == float64(y)
+		case uint16:
+			return float64(x) == float64(y)
+		case uint32:
+			return float64(x) == float64(y)
+		case uint64:
+			return float64(x) == float64(y)
+		case int:
+			return float64(x) == float64(y)
+		case int8:
+			return float64(x) == float64(y)
+		case int16:
+			return float64(x) == float64(y)
+		case int32:
+			return float64(x) == float64(y)
+		case int64:
+			return float64(x) == float64(y)
+		case float32:
+			return float64(x) == float64(y)
+		case float64:
+			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) == val
+			}
+			return false
+		}
+	case string:
+		switch y := b.(type) {
+		case string:
+			return x == y
+		case uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
+			// Try numeric conversion
+			if val, ok := ToFloat64Safe(x); ok {
+				return val == ToFloat64(y)
+			}
+			return false
+		case bool:
+			// JavaScript-like coercion
+			if x == "" {
+				return y == false
+			}
+			if val, ok := ToFloat64Safe(x); ok {
+				return val == ToFloat64(y)
+			}
+			return false
+		}
+	case bool:
+		switch y := b.(type) {
+		case bool:
+			return x == y
+		default:
+			return false
+		}
+	}
+	// Fallback to reflect.DeepEqual for complex types
+	return reflect.DeepEqual(a, b)
+}
+
 func Less(a, b interface{}) bool {
 	// Convert nil values to 0 for numeric comparisons
 	if IsNil(a) {
