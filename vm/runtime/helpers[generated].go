@@ -828,15 +828,18 @@ func Equal(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
-	// Convert nil to 0 for numeric comparison
-	if IsNil(a) {
-		a = 0
+	// Handle nil values with special semantics - nil is less than any non-nil value
+	if IsNil(a) && IsNil(b) {
+		return false // nil == nil, so not less than
 	}
-	if IsNil(b) {
-		b = 0
+	if IsNil(a) && !IsNil(b) {
+		return true // nil < non-nil (always)
+	}
+	if !IsNil(a) && IsNil(b) {
+		return false // non-nil > nil (always)
 	}
 
-	// Handle numeric operations
+	// Handle numeric operations for non-nil values
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -1253,15 +1256,18 @@ func Less(a, b interface{}) bool {
 }
 
 func More(a, b interface{}) bool {
-	// Convert nil to 0 for numeric comparison
-	if IsNil(a) {
-		a = 0
+	// Handle nil values with special semantics - nil is not greater than any value
+	if IsNil(a) && IsNil(b) {
+		return false // nil == nil, so not greater than
 	}
-	if IsNil(b) {
-		b = 0
+	if IsNil(a) && !IsNil(b) {
+		return false // nil < non-nil, so not greater
+	}
+	if !IsNil(a) && IsNil(b) {
+		return true // non-nil > nil (always)
 	}
 
-	// Handle numeric operations
+	// Handle numeric operations for non-nil values
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -1289,6 +1295,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -1316,6 +1326,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -1343,6 +1357,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -1370,6 +1388,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -1397,6 +1419,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case int:
 		switch y := b.(type) {
@@ -1424,6 +1450,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case int8:
 		switch y := b.(type) {
@@ -1451,6 +1481,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case int16:
 		switch y := b.(type) {
@@ -1478,6 +1512,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case int32:
 		switch y := b.(type) {
@@ -1505,6 +1543,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case int64:
 		switch y := b.(type) {
@@ -1532,6 +1574,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case float32:
 		switch y := b.(type) {
@@ -1559,6 +1605,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case float64:
 		switch y := b.(type) {
@@ -1586,6 +1636,10 @@ func More(a, b interface{}) bool {
 			return float64(x) > float64(y)
 		case float64:
 			return float64(x) > float64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case string:
 		switch y := b.(type) {
@@ -1615,21 +1669,23 @@ func More(a, b interface{}) bool {
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 			return ToFloat64(x) > ToFloat64(y)
 		}
-
 	}
 	panic(fmt.Sprintf("invalid operation: %T > %T", a, b))
 }
 
 func LessOrEqual(a, b interface{}) bool {
-	// Convert nil to 0 for numeric comparison
-	if IsNil(a) {
-		a = 0
+	// Handle nil values with special semantics
+	if IsNil(a) && IsNil(b) {
+		return true // nil == nil, so less than or equal
 	}
-	if IsNil(b) {
-		b = 0
+	if IsNil(a) && !IsNil(b) {
+		return true // nil < non-nil, so less than or equal
+	}
+	if !IsNil(a) && IsNil(b) {
+		return false // non-nil > nil, so not less than or equal
 	}
 
-	// Handle numeric operations
+	// Handle numeric operations for non-nil values
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -2080,15 +2136,18 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
-	// Convert nil to 0 for numeric comparison
-	if IsNil(a) {
-		a = 0
+	// Handle nil values with special semantics
+	if IsNil(a) && IsNil(b) {
+		return true // nil == nil, so greater than or equal
 	}
-	if IsNil(b) {
-		b = 0
+	if IsNil(a) && !IsNil(b) {
+		return false // nil < non-nil, so not greater than or equal
+	}
+	if !IsNil(a) && IsNil(b) {
+		return true // non-nil > nil, so greater than or equal
 	}
 
-	// Handle numeric operations
+	// Handle numeric operations for non-nil values
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
