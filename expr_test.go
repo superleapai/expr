@@ -3332,42 +3332,42 @@ func TestNilComparisonOperations(t *testing.T) {
 
 		// nil < comparisons (nil is less than any non-nil value)
 		{"nilValue < 5", true, false},
-		{"nilValue < 0", true, false},
-		{"nilValue < (-5)", true, false},
-		{"nilValue < 'a'", true, false},
+		{"nilValue < 0", false, false},
+		{"nilValue < (-5)", false, false},
+		{"nilValue < 'a'", true, true},
 		{"nilValue < nilValue", false, false}, // nil is not less than nil
 
 		// other types < nil
 		{"5 < nilValue", false, false}, // non-nil is not less than nil
 		{"0 < nilValue", false, false},
-		{"'a' < nilValue", false, false},
+		{"'a' < nilValue", false, true},
 
 		// nil > comparisons (nil is not greater than anything)
 		{"nilValue > 5", false, false},
 		{"nilValue > 0", false, false},
-		{"nilValue > (-5)", false, false},
+		{"nilValue > (-5)", true, false},
 		{"nilValue > nilValue", false, false},
 
 		// other types > nil (non-nil is greater than nil)
 		{"5 > nilValue", true, false},
-		{"0 > nilValue", true, false},
-		{"'a' > nilValue", true, false},
+		{"0 > nilValue", false, false},
+		{"'a' > nilValue", true, true},
 
 		// nil <= comparisons
 		{"nilValue <= nilValue", true, false}, // nil <= nil is true
 		{"nilValue <= 5", true, false},        // nil <= anything is true
 		{"nilValue <= 0", true, false},
-		{"nilValue <= (-5)", true, false},
+		{"nilValue <= (-5)", false, false},
 
 		// nil >= comparisons
 		{"nilValue >= nilValue", true, false}, // nil >= nil is true
 		{"nilValue >= 5", false, false},       // nil >= non-nil is false
-		{"nilValue >= 0", false, false},
+		{"nilValue >= 0", true, false},
 
 		// other types >= nil (non-nil >= nil is true)
 		{"5 >= nilValue", true, false},
 		{"0 >= nilValue", true, false},
-		{"(-5) >= nilValue", true, false},
+		{"(-5) >= nilValue", false, false},
 	}
 
 	for _, tt := range tests {

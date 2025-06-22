@@ -57,12 +57,11 @@ func ToFloat64Safe(a any) (float64, bool) {
 }
 
 func Equal(a, b interface{}) bool {
-	// Handle nil values first
+	// Handle nil values first - nil only equals nil
 	if IsNil(a) && IsNil(b) {
 		return true
 	}
 	if IsNil(a) || IsNil(b) {
-		// nil should only equal nil in most cases, except for explicit falsy comparisons
 		return false
 	}
 
@@ -828,18 +827,15 @@ func Equal(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
-	// Handle nil values with special semantics - nil is less than any non-nil value
-	if IsNil(a) && IsNil(b) {
-		return false // nil == nil, so not less than
+	// Convert nil values to 0 for numeric comparisons
+	if IsNil(a) {
+		a = 0
 	}
-	if IsNil(a) && !IsNil(b) {
-		return true // nil < non-nil (always)
-	}
-	if !IsNil(a) && IsNil(b) {
-		return false // non-nil > nil (always)
+	if IsNil(b) {
+		b = 0
 	}
 
-	// Handle numeric operations for non-nil values
+	// Handle numeric operations
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -870,7 +866,11 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			// Only allow comparison with numeric strings
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -901,7 +901,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -932,7 +935,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -963,7 +969,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -994,7 +1003,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case int:
 		switch y := b.(type) {
@@ -1025,7 +1037,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case int8:
 		switch y := b.(type) {
@@ -1056,7 +1071,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case int16:
 		switch y := b.(type) {
@@ -1087,7 +1105,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case int32:
 		switch y := b.(type) {
@@ -1118,7 +1139,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case int64:
 		switch y := b.(type) {
@@ -1149,7 +1173,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case float32:
 		switch y := b.(type) {
@@ -1180,7 +1207,10 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
-			return ToFloat64(x) < ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case float64:
 		switch y := b.(type) {
@@ -1211,24 +1241,59 @@ func Less(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) < ToFloat64(y)
 		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
+		}
+	case bool:
+		switch y := b.(type) {
+		case uint:
 			return ToFloat64(x) < ToFloat64(y)
+		case uint8:
+			return ToFloat64(x) < ToFloat64(y)
+		case uint16:
+			return ToFloat64(x) < ToFloat64(y)
+		case uint32:
+			return ToFloat64(x) < ToFloat64(y)
+		case uint64:
+			return ToFloat64(x) < ToFloat64(y)
+		case int:
+			return ToFloat64(x) < ToFloat64(y)
+		case int8:
+			return ToFloat64(x) < ToFloat64(y)
+		case int16:
+			return ToFloat64(x) < ToFloat64(y)
+		case int32:
+			return ToFloat64(x) < ToFloat64(y)
+		case int64:
+			return ToFloat64(x) < ToFloat64(y)
+		case float32:
+			return ToFloat64(x) < ToFloat64(y)
+		case float64:
+			return ToFloat64(x) < ToFloat64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) < val
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case string:
 		switch y := b.(type) {
 		case string:
 			return x < y
+		case uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
+			if val, ok := ToFloat64Safe(x); ok {
+				return val < ToFloat64(y)
+			}
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		case bool:
-			// Convert string to number and compare if possible
-			if _, ok := ToFloat64Safe(x); !ok {
-				panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
+			if val, ok := ToFloat64Safe(x); ok {
+				return val < ToFloat64(y)
 			}
-			return ToFloat64(x) < ToFloat64(y)
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			// Convert string to number and compare if possible
-			if _, ok := ToFloat64Safe(x); !ok {
-				panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
-			}
-			return ToFloat64(x) < ToFloat64(y)
+			panic(fmt.Sprintf("invalid operation: %T < %T", x, y))
 		}
 	case time.Time:
 		switch y := b.(type) {
@@ -1240,34 +1305,19 @@ func Less(a, b interface{}) bool {
 		case time.Duration:
 			return x < y
 		}
-	case bool:
-		switch y := b.(type) {
-		case bool:
-			return ToInt(x) < ToInt(y)
-		case string:
-			// Convert bool to number and string to number, then compare
-			return ToFloat64(x) < ToFloat64(y)
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			// Convert bool to number and compare
-			return ToFloat64(x) < ToFloat64(y)
-		}
 	}
 	panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
 }
 
 func More(a, b interface{}) bool {
-	// Handle nil values with special semantics - nil is not greater than any value
-	if IsNil(a) && IsNil(b) {
-		return false // nil == nil, so not greater than
+	// Convert nil values to 0 for numeric comparisons
+	if IsNil(a) {
+		a = 0
 	}
-	if IsNil(a) && !IsNil(b) {
-		return false // nil < non-nil, so not greater
+	if IsNil(b) {
+		b = 0
 	}
-	if !IsNil(a) && IsNil(b) {
-		return true // non-nil > nil (always)
-	}
-
-	// Handle numeric operations for non-nil values
+	// Handle numeric operations
 	switch x := a.(type) {
 	case uint:
 		switch y := b.(type) {
@@ -1641,14 +1691,54 @@ func More(a, b interface{}) bool {
 		case string:
 			return ToFloat64(x) > ToFloat64(y)
 		}
+	case bool:
+		switch y := b.(type) {
+		case uint:
+			return ToFloat64(x) > ToFloat64(y)
+		case uint8:
+			return ToFloat64(x) > ToFloat64(y)
+		case uint16:
+			return ToFloat64(x) > ToFloat64(y)
+		case uint32:
+			return ToFloat64(x) > ToFloat64(y)
+		case uint64:
+			return ToFloat64(x) > ToFloat64(y)
+		case int:
+			return ToFloat64(x) > ToFloat64(y)
+		case int8:
+			return ToFloat64(x) > ToFloat64(y)
+		case int16:
+			return ToFloat64(x) > ToFloat64(y)
+		case int32:
+			return ToFloat64(x) > ToFloat64(y)
+		case int64:
+			return ToFloat64(x) > ToFloat64(y)
+		case float32:
+			return ToFloat64(x) > ToFloat64(y)
+		case float64:
+			return ToFloat64(x) > ToFloat64(y)
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case string:
+			if val, ok := ToFloat64Safe(y); ok {
+				return ToFloat64(x) > val
+			}
+			panic(fmt.Sprintf("invalid operation: %T > %T", x, y))
+		}
 	case string:
 		switch y := b.(type) {
 		case string:
 			return x > y
+		case uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
+			if val, ok := ToFloat64Safe(x); ok {
+				return val > ToFloat64(y)
+			}
+			panic(fmt.Sprintf("invalid operation: %T > %T", x, y))
 		case bool:
-			return ToFloat64(x) > ToFloat64(y)
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			return ToFloat64(x) > ToFloat64(y)
+			if val, ok := ToFloat64Safe(x); ok {
+				return val > ToFloat64(y)
+			}
+			panic(fmt.Sprintf("invalid operation: %T > %T", x, y))
 		}
 	case time.Time:
 		switch y := b.(type) {
@@ -1660,29 +1750,18 @@ func More(a, b interface{}) bool {
 		case time.Duration:
 			return x > y
 		}
-	case bool:
-		switch y := b.(type) {
-		case bool:
-			return ToInt(x) > ToInt(y)
-		case string:
-			return ToFloat64(x) > ToFloat64(y)
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-			return ToFloat64(x) > ToFloat64(y)
-		}
+
 	}
 	panic(fmt.Sprintf("invalid operation: %T > %T", a, b))
 }
 
 func LessOrEqual(a, b interface{}) bool {
-	// Handle nil values with special semantics
-	if IsNil(a) && IsNil(b) {
-		return true // nil == nil, so less than or equal
+	// Convert nil values to 0 for numeric comparisons
+	if IsNil(a) {
+		a = 0
 	}
-	if IsNil(a) && !IsNil(b) {
-		return true // nil < non-nil, so less than or equal
-	}
-	if !IsNil(a) && IsNil(b) {
-		return false // non-nil > nil, so not less than or equal
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations for non-nil values
@@ -2136,15 +2215,12 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
-	// Handle nil values with special semantics
-	if IsNil(a) && IsNil(b) {
-		return true // nil == nil, so greater than or equal
+	// Convert nil values to 0 for numeric comparisons
+	if IsNil(a) {
+		a = 0
 	}
-	if IsNil(a) && !IsNil(b) {
-		return false // nil < non-nil, so not greater than or equal
-	}
-	if !IsNil(a) && IsNil(b) {
-		return true // non-nil > nil, so greater than or equal
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations for non-nil values
