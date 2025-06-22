@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sort"
 	"strings"
@@ -1110,5 +1111,79 @@ var Builtins = []*Function{
 			return ^x, nil
 		},
 		Types: types(new(func(int) int)),
+	},
+	{
+		Name: "random",
+		Func: func(args ...any) (any, error) {
+			if len(args) == 0 {
+				return nil, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got 0)")
+			}
+			if len(args) > 2 {
+				return nil, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got %d)", len(args))
+			}
+
+			// Convert arguments to int
+			var min, max int
+			var err error
+
+			if len(args) == 1 {
+				// random(max) - generates random number from 0 to max-1
+				max, err = toInt(args[0])
+				if err != nil {
+					return nil, fmt.Errorf("invalid argument for random: %v", err)
+				}
+				if max <= 0 {
+					return nil, fmt.Errorf("invalid argument for random: max must be positive, got %d", max)
+				}
+				return rand.Intn(max), nil
+			} else {
+				// random(min, max) - generates random number from min to max-1
+				min, err = toInt(args[0])
+				if err != nil {
+					return nil, fmt.Errorf("invalid first argument for random: %v", err)
+				}
+				max, err = toInt(args[1])
+				if err != nil {
+					return nil, fmt.Errorf("invalid second argument for random: %v", err)
+				}
+				if max <= min {
+					return nil, fmt.Errorf("invalid arguments for random: max must be greater than min, got min=%d, max=%d", min, max)
+				}
+				return min + rand.Intn(max-min), nil
+			}
+		},
+		Types: types(
+			new(func(int) int),
+			new(func(float64) int),
+			new(func(string) int),
+			new(func(int, int) int),
+			new(func(float64, int) int),
+			new(func(int, float64) int),
+			new(func(float64, float64) int),
+			new(func(string, int) int),
+			new(func(int, string) int),
+			new(func(string, string) int),
+		),
+		Validate: func(args []reflect.Type) (reflect.Type, error) {
+			if len(args) == 0 {
+				return anyType, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got 0)")
+			}
+			if len(args) > 2 {
+				return anyType, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got %d)", len(args))
+			}
+
+			// Validate that arguments can be converted to int
+			for i, arg := range args {
+				switch kind(arg) {
+				case reflect.Interface, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+					reflect.Float32, reflect.Float64, reflect.String:
+					// These types can be converted to int
+				default:
+					return anyType, fmt.Errorf("invalid argument %d for random (type %s)", i+1, arg)
+				}
+			}
+			return integerType, nil
+		},
 	},
 }
