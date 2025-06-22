@@ -182,19 +182,13 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 
 		case OpJumpIfTrue:
 			x := vm.current()
-			if runtime.IsNil(x) {
-				x = false
-			}
-			if x.(bool) {
+			if runtime.IsTruthy(x) {
 				vm.ip += arg
 			}
 
 		case OpJumpIfFalse:
 			x := vm.current()
-			if runtime.IsNil(x) {
-				x = false
-			}
-			if !x.(bool) {
+			if !runtime.IsTruthy(x) {
 				vm.ip += arg
 			}
 

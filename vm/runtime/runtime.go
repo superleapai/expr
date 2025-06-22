@@ -280,12 +280,35 @@ func Negate(i any) any {
 
 func Exponent(a, b any) float64 {
 	if IsNil(a) {
-		return 0
+		a = 0
 	}
 	if IsNil(b) {
+		b = 0
+	}
+
+	// Handle cross-type operations - check for non-numeric strings
+	switch x := a.(type) {
+	case string:
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) ** %T", x, b))
+		}
+	}
+	switch x := b.(type) {
+	case string:
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: %T ** string(%q)", a, x))
+		}
+	}
+
+	aVal := ToFloat64(a)
+	bVal := ToFloat64(b)
+
+	// Handle special case: 0 ** 0 = 1 (mathematical convention)
+	if aVal == 0 && bVal == 0 {
 		return 1
 	}
-	return math.Pow(ToFloat64(a), ToFloat64(b))
+
+	return math.Pow(aVal, bVal)
 }
 
 func MakeRange(min, max int) []int {

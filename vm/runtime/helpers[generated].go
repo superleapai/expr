@@ -4,15 +4,65 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 	"time"
 )
+
+// Safe version of ToFloat64 that returns error instead of panicking
+func ToFloat64Safe(a any) (float64, bool) {
+	if IsNil(a) {
+		return 0, true
+	}
+	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1, true
+		}
+		return 0, true
+	case string:
+		if x == "" {
+			return 0.0, true // empty string converts to 0.0
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return f, true
+		}
+		return 0, false
+	case float32:
+		return float64(x), true
+	case float64:
+		return x, true
+	case int:
+		return float64(x), true
+	case int8:
+		return float64(x), true
+	case int16:
+		return float64(x), true
+	case int32:
+		return float64(x), true
+	case int64:
+		return float64(x), true
+	case uint:
+		return float64(x), true
+	case uint8:
+		return float64(x), true
+	case uint16:
+		return float64(x), true
+	case uint32:
+		return float64(x), true
+	case uint64:
+		return float64(x), true
+	default:
+		return 0, false
+	}
+}
 
 func Equal(a, b interface{}) bool {
 	// Handle nil values first
 	if IsNil(a) && IsNil(b) {
 		return true
 	}
-	if a == nil || b == nil {
+	if IsNil(a) || IsNil(b) {
+		// nil should only equal nil in most cases, except for explicit falsy comparisons
 		return false
 	}
 
@@ -44,6 +94,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -71,6 +125,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -98,6 +156,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -125,6 +187,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -152,6 +218,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case int:
 		switch y := b.(type) {
@@ -179,6 +249,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case int8:
 		switch y := b.(type) {
@@ -206,6 +280,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case int16:
 		switch y := b.(type) {
@@ -233,6 +311,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case int32:
 		switch y := b.(type) {
@@ -260,6 +342,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case int64:
 		switch y := b.(type) {
@@ -287,6 +373,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case float32:
 		switch y := b.(type) {
@@ -314,6 +404,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case float64:
 		switch y := b.(type) {
@@ -341,6 +435,10 @@ func Equal(a, b interface{}) bool {
 			return float64(x) == float64(y)
 		case float64:
 			return float64(x) == float64(y)
+		case bool:
+			return ToFloat64(x) == ToFloat64(y)
+		case string:
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case []any:
 		switch y := b.(type) {
@@ -684,6 +782,18 @@ func Equal(a, b interface{}) bool {
 		switch y := b.(type) {
 		case string:
 			return x == y
+		case bool:
+			// JavaScript-like coercion: empty string == false, non-empty string != true/false
+			if x == "" {
+				return y == false
+			}
+			return false
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			// Try to convert string to number and compare
+			if x == "" {
+				return ToInt(y) == 0
+			}
+			return ToFloat64(x) == ToFloat64(y)
 		}
 	case time.Time:
 		switch y := b.(type) {
@@ -699,6 +809,16 @@ func Equal(a, b interface{}) bool {
 		switch y := b.(type) {
 		case bool:
 			return x == y
+		case string:
+			// JavaScript-like coercion: false == empty string
+			if y == "" {
+				return x == false
+			}
+			// Try to convert string to number
+			return ToInt(x) == ToInt(y)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			// JavaScript-like coercion: true == 1, false == 0
+			return ToInt(x) == ToInt(y)
 		}
 	}
 	if IsNil(a) && IsNil(b) {
@@ -708,15 +828,12 @@ func Equal(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
-	// Handle nil values first
-	if IsNil(a) && IsNil(b) {
-		return false // nil is not less than nil
+	// Convert nil to 0 for numeric comparison
+	if IsNil(a) {
+		a = 0
 	}
-	if a == nil {
-		return true // nil is less than any non-nil value
-	}
-	if b == nil {
-		return false // non-nil is not less than nil
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations
@@ -747,6 +864,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -774,6 +895,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -801,6 +926,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -828,6 +957,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -855,6 +988,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case int:
 		switch y := b.(type) {
@@ -882,6 +1019,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case int8:
 		switch y := b.(type) {
@@ -909,6 +1050,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case int16:
 		switch y := b.(type) {
@@ -936,6 +1081,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case int32:
 		switch y := b.(type) {
@@ -963,6 +1112,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case int64:
 		switch y := b.(type) {
@@ -990,6 +1143,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case float32:
 		switch y := b.(type) {
@@ -1017,6 +1174,10 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case float64:
 		switch y := b.(type) {
@@ -1044,11 +1205,27 @@ func Less(a, b interface{}) bool {
 			return float64(x) < float64(y)
 		case float64:
 			return float64(x) < float64(y)
+		case bool:
+			return ToFloat64(x) < ToFloat64(y)
+		case string:
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case string:
 		switch y := b.(type) {
 		case string:
 			return x < y
+		case bool:
+			// Convert string to number and compare if possible
+			if _, ok := ToFloat64Safe(x); !ok {
+				panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
+			}
+			return ToFloat64(x) < ToFloat64(y)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			// Convert string to number and compare if possible
+			if _, ok := ToFloat64Safe(x); !ok {
+				panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
+			}
+			return ToFloat64(x) < ToFloat64(y)
 		}
 	case time.Time:
 		switch y := b.(type) {
@@ -1060,20 +1237,28 @@ func Less(a, b interface{}) bool {
 		case time.Duration:
 			return x < y
 		}
+	case bool:
+		switch y := b.(type) {
+		case bool:
+			return ToInt(x) < ToInt(y)
+		case string:
+			// Convert bool to number and string to number, then compare
+			return ToFloat64(x) < ToFloat64(y)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			// Convert bool to number and compare
+			return ToFloat64(x) < ToFloat64(y)
+		}
 	}
 	panic(fmt.Sprintf("invalid operation: %T < %T", a, b))
 }
 
 func More(a, b interface{}) bool {
-	// Handle nil values first
-	if IsNil(a) && IsNil(b) {
-		return false // nil is not more than nil
+	// Convert nil to 0 for numeric comparison
+	if IsNil(a) {
+		a = 0
 	}
-	if a == nil {
-		return false // nil is not more than any non-nil value
-	}
-	if b == nil {
-		return true // non-nil is more than nil
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations
@@ -1406,6 +1591,10 @@ func More(a, b interface{}) bool {
 		switch y := b.(type) {
 		case string:
 			return x > y
+		case bool:
+			return ToFloat64(x) > ToFloat64(y)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			return ToFloat64(x) > ToFloat64(y)
 		}
 	case time.Time:
 		switch y := b.(type) {
@@ -1417,20 +1606,27 @@ func More(a, b interface{}) bool {
 		case time.Duration:
 			return x > y
 		}
+	case bool:
+		switch y := b.(type) {
+		case bool:
+			return ToInt(x) > ToInt(y)
+		case string:
+			return ToFloat64(x) > ToFloat64(y)
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			return ToFloat64(x) > ToFloat64(y)
+		}
+
 	}
 	panic(fmt.Sprintf("invalid operation: %T > %T", a, b))
 }
 
 func LessOrEqual(a, b interface{}) bool {
-	// Handle nil values first
-	if IsNil(a) && IsNil(b) {
-		return true // nil is equal to nil
+	// Convert nil to 0 for numeric comparison
+	if IsNil(a) {
+		a = 0
 	}
-	if a == nil {
-		return true // nil is less than or equal to any non-nil value
-	}
-	if b == nil {
-		return false // non-nil is not less than or equal to nil
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations
@@ -1461,6 +1657,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -1488,6 +1688,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -1515,6 +1719,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -1542,6 +1750,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -1569,6 +1781,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case int:
 		switch y := b.(type) {
@@ -1596,6 +1812,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case int8:
 		switch y := b.(type) {
@@ -1623,6 +1843,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case int16:
 		switch y := b.(type) {
@@ -1650,6 +1874,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case int32:
 		switch y := b.(type) {
@@ -1677,6 +1905,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case int64:
 		switch y := b.(type) {
@@ -1704,6 +1936,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case float32:
 		switch y := b.(type) {
@@ -1731,6 +1967,10 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
 		}
 	case float64:
 		switch y := b.(type) {
@@ -1758,9 +1998,70 @@ func LessOrEqual(a, b interface{}) bool {
 			return float64(x) <= float64(y)
 		case float64:
 			return float64(x) <= float64(y)
+		case bool:
+			return float64(x) <= ToFloat64(y)
+		case string:
+			return float64(x) <= ToFloat64(y)
+		}
+	case bool:
+		switch y := b.(type) {
+		case uint:
+			return ToFloat64(x) <= float64(y)
+		case uint8:
+			return ToFloat64(x) <= float64(y)
+		case uint16:
+			return ToFloat64(x) <= float64(y)
+		case uint32:
+			return ToFloat64(x) <= float64(y)
+		case uint64:
+			return ToFloat64(x) <= float64(y)
+		case int:
+			return ToFloat64(x) <= float64(y)
+		case int8:
+			return ToFloat64(x) <= float64(y)
+		case int16:
+			return ToFloat64(x) <= float64(y)
+		case int32:
+			return ToFloat64(x) <= float64(y)
+		case int64:
+			return ToFloat64(x) <= float64(y)
+		case float32:
+			return ToFloat64(x) <= float64(y)
+		case float64:
+			return ToFloat64(x) <= float64(y)
+		case bool:
+			return ToFloat64(x) <= ToFloat64(y)
+		case string:
+			return ToFloat64(x) <= ToFloat64(y)
 		}
 	case string:
 		switch y := b.(type) {
+		case uint:
+			return ToFloat64(x) <= float64(y)
+		case uint8:
+			return ToFloat64(x) <= float64(y)
+		case uint16:
+			return ToFloat64(x) <= float64(y)
+		case uint32:
+			return ToFloat64(x) <= float64(y)
+		case uint64:
+			return ToFloat64(x) <= float64(y)
+		case int:
+			return ToFloat64(x) <= float64(y)
+		case int8:
+			return ToFloat64(x) <= float64(y)
+		case int16:
+			return ToFloat64(x) <= float64(y)
+		case int32:
+			return ToFloat64(x) <= float64(y)
+		case int64:
+			return ToFloat64(x) <= float64(y)
+		case float32:
+			return ToFloat64(x) <= float64(y)
+		case float64:
+			return ToFloat64(x) <= float64(y)
+		case bool:
+			return ToFloat64(x) <= ToFloat64(y)
 		case string:
 			return x <= y
 		}
@@ -1779,15 +2080,12 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
-	// Handle nil values first
-	if IsNil(a) && IsNil(b) {
-		return true // nil is equal to nil
+	// Convert nil to 0 for numeric comparison
+	if IsNil(a) {
+		a = 0
 	}
-	if a == nil {
-		return false // nil is not more than or equal to any non-nil value
-	}
-	if b == nil {
-		return true // non-nil is more than or equal to nil
+	if IsNil(b) {
+		b = 0
 	}
 
 	// Handle numeric operations
@@ -1818,6 +2116,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -1845,6 +2147,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -1872,6 +2178,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -1899,6 +2209,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -1926,6 +2240,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case int:
 		switch y := b.(type) {
@@ -1953,6 +2271,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case int8:
 		switch y := b.(type) {
@@ -1980,6 +2302,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case int16:
 		switch y := b.(type) {
@@ -2007,6 +2333,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case int32:
 		switch y := b.(type) {
@@ -2034,6 +2364,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case int64:
 		switch y := b.(type) {
@@ -2061,6 +2395,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case float32:
 		switch y := b.(type) {
@@ -2088,6 +2426,10 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
 		}
 	case float64:
 		switch y := b.(type) {
@@ -2115,9 +2457,70 @@ func MoreOrEqual(a, b interface{}) bool {
 			return float64(x) >= float64(y)
 		case float64:
 			return float64(x) >= float64(y)
+		case bool:
+			return float64(x) >= ToFloat64(y)
+		case string:
+			return float64(x) >= ToFloat64(y)
+		}
+	case bool:
+		switch y := b.(type) {
+		case uint:
+			return ToFloat64(x) >= float64(y)
+		case uint8:
+			return ToFloat64(x) >= float64(y)
+		case uint16:
+			return ToFloat64(x) >= float64(y)
+		case uint32:
+			return ToFloat64(x) >= float64(y)
+		case uint64:
+			return ToFloat64(x) >= float64(y)
+		case int:
+			return ToFloat64(x) >= float64(y)
+		case int8:
+			return ToFloat64(x) >= float64(y)
+		case int16:
+			return ToFloat64(x) >= float64(y)
+		case int32:
+			return ToFloat64(x) >= float64(y)
+		case int64:
+			return ToFloat64(x) >= float64(y)
+		case float32:
+			return ToFloat64(x) >= float64(y)
+		case float64:
+			return ToFloat64(x) >= float64(y)
+		case bool:
+			return ToFloat64(x) >= ToFloat64(y)
+		case string:
+			return ToFloat64(x) >= ToFloat64(y)
 		}
 	case string:
 		switch y := b.(type) {
+		case uint:
+			return ToFloat64(x) >= float64(y)
+		case uint8:
+			return ToFloat64(x) >= float64(y)
+		case uint16:
+			return ToFloat64(x) >= float64(y)
+		case uint32:
+			return ToFloat64(x) >= float64(y)
+		case uint64:
+			return ToFloat64(x) >= float64(y)
+		case int:
+			return ToFloat64(x) >= float64(y)
+		case int8:
+			return ToFloat64(x) >= float64(y)
+		case int16:
+			return ToFloat64(x) >= float64(y)
+		case int32:
+			return ToFloat64(x) >= float64(y)
+		case int64:
+			return ToFloat64(x) >= float64(y)
+		case float32:
+			return ToFloat64(x) >= float64(y)
+		case float64:
+			return ToFloat64(x) >= float64(y)
+		case bool:
+			return ToFloat64(x) >= ToFloat64(y)
 		case string:
 			return x >= y
 		}
@@ -2583,7 +2986,15 @@ func Subtract(a, b interface{}) interface{} {
 
 	// Handle string operations - convert to numeric or error
 	if aStr, aOk := a.(string); aOk {
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(aStr); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) - %T", aStr, b))
+		}
 		if bStr, bOk := b.(string); bOk {
+			// Check if both strings can be converted to numbers
+			if _, ok := ToFloat64Safe(bStr); !ok {
+				panic(fmt.Sprintf("invalid operation: string(%q) - string(%q)", aStr, bStr))
+			}
 			// string - string: convert both to numbers
 			return ToInt(aStr) - ToInt(bStr)
 		}
@@ -2596,6 +3007,10 @@ func Subtract(a, b interface{}) interface{} {
 		}
 	}
 	if bStr, bOk := b.(string); bOk {
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(bStr); !ok {
+			panic(fmt.Sprintf("invalid operation: %T - string(%q)", a, bStr))
+		}
 		// numeric - string: convert string to number, match numeric type
 		switch a.(type) {
 		case float32, float64:
@@ -2978,7 +3393,15 @@ func Multiply(a, b interface{}) interface{} {
 
 	// Handle string operations - convert to numeric or error
 	if aStr, aOk := a.(string); aOk {
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(aStr); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) * %T", aStr, b))
+		}
 		if bStr, bOk := b.(string); bOk {
+			// Check if both strings can be converted to numbers
+			if _, ok := ToFloat64Safe(bStr); !ok {
+				panic(fmt.Sprintf("invalid operation: string(%q) * string(%q)", aStr, bStr))
+			}
 			// string * string: convert both to numbers
 			return ToInt(aStr) * ToInt(bStr)
 		}
@@ -2991,6 +3414,10 @@ func Multiply(a, b interface{}) interface{} {
 		}
 	}
 	if bStr, bOk := b.(string); bOk {
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(bStr); !ok {
+			panic(fmt.Sprintf("invalid operation: %T * string(%q)", a, bStr))
+		}
 		// numeric * string: convert string to number, match numeric type
 		switch a.(type) {
 		case float32, float64:
@@ -3385,23 +3812,32 @@ func Multiply(a, b interface{}) interface{} {
 
 func Divide(a, b interface{}) float64 {
 	// Handle nil values first
-	if a == nil {
-		return 0.0 // 0 divided by anything is 0
+	if IsNil(a) {
+		a = 0
 	}
-	if b == nil {
-		return 0.0 // Division by nil is treated as division by 0, which results in 0
+	if IsNil(b) {
+		b = 0
 	}
+
 	// Handle cross-type operations - convert booleans and strings to numbers
 	switch x := a.(type) {
 	case bool:
 		a = ToInt(x)
 	case string:
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) / %T", x, b))
+		}
 		a = ToFloat64(x) // Convert to float64 since division always returns float64
 	}
 	switch x := b.(type) {
 	case bool:
 		b = ToInt(x)
 	case string:
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: %T / string(%q)", a, x))
+		}
 		b = ToFloat64(x) // Convert to float64 since division always returns float64
 	}
 
@@ -3413,1046 +3849,114 @@ func Divide(a, b interface{}) float64 {
 
 	// Return the division result
 	return ToFloat64(a) / bVal
-	switch x := a.(type) {
-	case uint:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case uint8:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	// Continue similar pattern for all other numeric types...
-	case uint16:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case uint32:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case uint64:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case int:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case int8:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case int16:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case int32:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case int64:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case float32:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	case float64:
-		switch y := b.(type) {
-		case uint:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case uint64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		case float64:
-			if float64(y) == 0.0 {
-				panic("integer divide by zero")
-			}
-			return float64(x) / float64(y)
-		}
-	}
-	panic(fmt.Sprintf("invalid operation: %T / %T", a, b))
 }
 
 func Modulo(a, b interface{}) interface{} {
 	// Handle nil values first
-	if a == nil {
-		return 0 // 0 modulo anything is 0
+	if IsNil(a) {
+		a = 0
 	}
-	if b == nil {
-		return 0 // Modulo by nil is treated as modulo by 0, which results in 0
+	if IsNil(b) {
+		b = 0
 	}
 
-	// Handle numeric operations
+	// Handle cross-type operations - convert booleans and strings to numbers
 	switch x := a.(type) {
-	case int:
-		switch y := b.(type) {
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
+	case bool:
+		a = ToInt(x)
+	case string:
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) %% %T", x, b))
 		}
-	case int8:
-		switch y := b.(type) {
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-	case int16:
-		switch y := b.(type) {
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-	case int32:
-		switch y := b.(type) {
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-	case int64:
-		switch y := b.(type) {
-		case int:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int8:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int16:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int32:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case int64:
-			if int(y) == 0 {
-				panic("integer divide by zero")
-			}
-			return int(x) % int(y)
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-	case float32:
-		switch y := b.(type) {
-		case int:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int8:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int16:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-	case float64:
-		switch y := b.(type) {
-		case int:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int8:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int16:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case int64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float32:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		case float64:
-			if float64(y) == 0.0 {
-				panic("float modulo by zero")
-			}
-			return math.Mod(float64(x), float64(y))
-		}
-
+		a = ToFloat64(x)
 	}
-	panic(fmt.Sprintf("invalid operation: %T %% %T", a, b))
+	switch x := b.(type) {
+	case bool:
+		b = ToInt(x)
+	case string:
+		// Check if string can be converted to number
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: %T %% string(%q)", a, x))
+		}
+		b = ToFloat64(x)
+	}
+
+	// Check for modulo by zero after type conversion
+	bVal := ToFloat64(b)
+	if bVal == 0.0 {
+		panic("integer divide by zero")
+	}
+
+	// For integer operations, return integer result
+	aVal := ToFloat64(a)
+	if isInteger(aVal) && isInteger(bVal) {
+		return int(aVal) % int(bVal)
+	}
+
+	// For float operations, use math.Mod
+	return math.Mod(aVal, bVal)
+}
+
+func isInteger(f float64) bool {
+	return f == float64(int(f))
+}
+
+// IsTruthy determines if a value is truthy in JavaScript-like logic
+func IsTruthy(v interface{}) bool {
+	if IsNil(v) {
+		return false
+	}
+	switch x := v.(type) {
+	case bool:
+		return x
+	case int:
+		return x != 0
+	case int8:
+		return x != 0
+	case int16:
+		return x != 0
+	case int32:
+		return x != 0
+	case int64:
+		return x != 0
+	case uint:
+		return x != 0
+	case uint8:
+		return x != 0
+	case uint16:
+		return x != 0
+	case uint32:
+		return x != 0
+	case uint64:
+		return x != 0
+	case float32:
+		return x != 0
+	case float64:
+		return x != 0
+	case string:
+		return x != ""
+	case []interface{}:
+		return true // Arrays are always truthy (even empty ones)
+	case map[string]interface{}:
+		return true // Objects are always truthy (even empty ones)
+	default:
+		return true // Other types are truthy
+	}
+}
+
+// And performs JavaScript-like logical AND
+func And(a, b interface{}) interface{} {
+	if !IsTruthy(a) {
+		return a
+	}
+	return b
+}
+
+// Or performs JavaScript-like logical OR
+func Or(a, b interface{}) interface{} {
+	if IsTruthy(a) {
+		return a
+	}
+	return b
 }
