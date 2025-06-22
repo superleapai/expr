@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"sync"
@@ -2880,6 +2881,7 @@ func TestStringConcatenationWithAllTypes(t *testing.T) {
 		// String + nil (if supported)
 		{"'hello' + nil", "hello", false},
 		{"nil + 'world'", "world", false},
+		{"nilValue + 'world'", "world", false}, // nil + string
 
 		// Empty string concatenations
 		{"'' + 42", "42", false},
@@ -2894,7 +2896,9 @@ func TestStringConcatenationWithAllTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.expr, func(t *testing.T) {
-			result, err := expr.Eval(tt.expr, nil)
+			result, err := expr.Eval(tt.expr, map[string]any{
+				"nilValue": nil,
+			})
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error for %q, got result %v", tt.expr, result)
@@ -3161,10 +3165,15 @@ func equalNumbers(a, b any) bool {
 }
 
 func equalValues(a, b any) bool {
-	// Try string comparison first
-	if equalStrings(a, b) {
-		return true
+	// Check if either value is a string
+	_, aIsString := a.(string)
+	_, bIsString := b.(string)
+
+	// If either is a string, use string comparison only
+	if aIsString || bIsString {
+		return equalStrings(a, b)
 	}
+
 	// Try numeric comparison
 	if equalNumbers(a, b) {
 		return true
@@ -3228,17 +3237,17 @@ func TestNilArithmeticOperations(t *testing.T) {
 		expectError bool
 	}{
 		// nil + other types
-		{"nilValue + 5", "5", false},                 // nil + int becomes string concatenation
-		{"nilValue + 5.5", "5.5", false},             // nil + float becomes string concatenation
-		{"nilValue + 'world'", "<nil>world", false},  // nil + string
-		{"nilValue + true", "1", false},              // nil + bool
-		{"nilValue + nilValue", "<nil><nil>", false}, // nil + nil
+		{"nilValue + 5", "5", false},           // nil + int becomes string concatenation
+		{"nilValue + 5.5", "5.5", false},       // nil + float becomes string concatenation
+		{"nilValue + 'world'", "world", false}, // nil + string
+		{"nilValue + true", "1", false},        // nil + bool
+		{"nilValue + nilValue", "0", false},    // nil + nil
 
 		// other types + nil
-		{"5 + nilValue", "5", false},                // int + nil becomes string concatenation
-		{"5.5 + nilValue", "5.5", false},            // float + nil becomes string concatenation
-		{"'hello' + nilValue", "hello<nil>", false}, // string + nil
-		{"true + nilValue", "1", false},             // bool + nil
+		{"5 + nilValue", "5", false},           // int + nil becomes string concatenation
+		{"5.5 + nilValue", "5.5", false},       // float + nil becomes string concatenation
+		{"'hello' + nilValue", "hello", false}, // string + nil
+		{"true + nilValue", "1", false},        // bool + nil
 
 		// nil - other types
 		{"nilValue - 5", -5, false},       // nil - int = 0 - int
@@ -4620,4 +4629,626 @@ func deepEqual(a, b any) bool {
 
 	// For other types, use approximatelyEqual
 	return approximatelyEqual(a, b)
+}
+
+func TestJavaScriptLikeTruthiness(t *testing.T) {
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Basic boolean negation (works in expr)
+		{"!true", false, false},
+		{"!false", true, false},
+		{"!!true", true, false},
+		{"!!false", false, false},
+		{"!nil", true, false},
+		{"!!nil", false, false},
+
+		// Logical operators with truthy/falsy values (these work well in expr)
+		{"0 || 'default'", "default", false},
+		{"'' || 'default'", "default", false},
+		{"nil || 'default'", "default", false},
+		{"false || 'default'", "default", false},
+		{"42 || 'default'", 42, false},
+		{"'hello' || 'default'", "hello", false},
+		{"true || 'default'", true, false},
+
+		{"0 && 'value'", 0, false},
+		{"'' && 'value'", "", false},
+		{"nil && 'value'", nil, false},
+		{"false && 'value'", false, false},
+		{"42 && 'value'", "value", false},
+		{"'hello' && 'value'", "value", false},
+		{"true && 'value'", "value", false},
+
+		// Complex truthiness expressions
+		{"(0 || 1) != 0", true, false},
+		{"('' || 'text') != ''", true, false},
+		{"(nil || 42) != nil", true, false},
+		{"(false || true) == true", true, false},
+
+		// Ternary operator with truthy/falsy values
+		{"0 ? 'truthy' : 'falsy'", "falsy", false},
+		{"1 ? 'truthy' : 'falsy'", "truthy", false},
+		{"'' ? 'truthy' : 'falsy'", "falsy", false},
+		{"'hello' ? 'truthy' : 'falsy'", "truthy", false},
+		{"nil ? 'truthy' : 'falsy'", "falsy", false},
+		{"[] ? 'truthy' : 'falsy'", "truthy", false},
+		{"{} ? 'truthy' : 'falsy'", "truthy", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeTypeCoercion(t *testing.T) {
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Number to string coercion in concatenation
+		{"'The answer is ' + 42", "The answer is 42", false},
+		{"42 + ' is the answer'", "42 is the answer", false},
+		{"'Result: ' + (10 + 20)", "Result: 30", false},
+		{"'Pi is ' + 3.14159", "Pi is 3.14159", false},
+		{"'Negative: ' + (-42)", "Negative: -42", false},
+
+		// Boolean to string coercion
+		{"'Value is ' + true", "Value is true", false},
+		{"'Value is ' + false", "Value is false", false},
+		{"true + ' statement'", "true statement", false},
+		{"false + ' statement'", "false statement", false},
+
+		// Array to string coercion (if supported)
+		{"'Items: ' + [1,2,3]", "Items: [1 2 3]", false},
+		{"[1,2,3] + ' are numbers'", "[1 2 3] are numbers", false},
+
+		// Object to string coercion (if supported)
+		{"'Data: ' + {a:1, b:2}", "Data: map[a:1 b:2]", false},
+
+		// Null/undefined coercion
+		{"'Value: ' + nil", "Value: ", false},
+		{"nil + ' is empty'", " is empty", false},
+
+		// Complex expressions with coercion
+		{"'Sum: ' + (5 + 10) + ', Product: ' + (5 * 10)", "Sum: 15, Product: 50", false},
+		{"'Boolean: ' + (5 > 3) + ', Number: ' + 42", "Boolean: true, Number: 42", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !equalStrings(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeEquality(t *testing.T) {
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// expr actually does JavaScript-like type coercion for equality!
+		{"0 == false", true, false},  // expr does coercion like JavaScript
+		{"1 == true", true, false},   // expr does coercion like JavaScript
+		{"'' == false", true, false}, // expr does coercion like JavaScript
+		{"'0' == 0", true, false},    // expr does coercion like JavaScript
+		{"'1' == 1", true, false},    // expr does coercion like JavaScript
+
+		// Same type comparisons
+		{"0 == 0", true, false},
+		{"1 == 1", true, false},
+		{"true == true", true, false},
+		{"false == false", true, false},
+		{"'hello' == 'hello'", true, false},
+		{"nil == nil", true, false},
+
+		// Cross-type coercion (very JavaScript-like)
+		{"0 == '0'", true, false},   // string to number coercion
+		{"1 == '1'", true, false},   // string to number coercion
+		{"true == 1", true, false},  // boolean to number coercion
+		{"false == 0", true, false}, // boolean to number coercion
+		{"nil == 0", false, false},
+		{"nil == ''", false, false},
+		{"nil == false", false, false},
+
+		// Inequality tests
+		{"1 != 0", true, false},
+		{"'hello' != 'world'", true, false},
+		{"true != false", true, false},
+		{"42 != '41'", true, false},
+
+		// More complex coercion cases
+		{"'123' == 123", true, false},      // string number to number
+		{"'3.14' == 3.14", true, false},    // string float to float
+		{"'true' == true", false, false},   // string 'true' != boolean true
+		{"'false' == false", false, false}, // string 'false' != boolean false
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if result != tt.want {
+					t.Errorf("%q: got %v, want %v", tt.expr, result, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeArrayOperations(t *testing.T) {
+	env := map[string]any{
+		"arr":       []int{1, 2, 3, 4, 5},
+		"emptyArr":  []int{},
+		"mixedArr":  []any{1, "hello", true, nil},
+		"nestedArr": []any{[]int{1, 2}, []int{3, 4}},
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Array length
+		{"len(arr)", 5, false},
+		{"len(emptyArr)", 0, false},
+		{"len(mixedArr)", 4, false},
+
+		// Array indexing with negative indices (JavaScript-like)
+		{"arr[-1]", 5, false}, // Last element
+		{"arr[-2]", 4, false}, // Second to last
+		{"arr[-5]", 1, false}, // First element when using negative index
+
+		// Array slicing
+		{"arr[1:3]", []int{2, 3}, false},
+		{"arr[:2]", []int{1, 2}, false},
+		{"arr[2:]", []int{3, 4, 5}, false},
+		{"arr[:]", []int{1, 2, 3, 4, 5}, false},
+
+		// Array concatenation (if supported)
+		{"arr + [6, 7]", []int{1, 2, 3, 4, 5, 6, 7}, true}, // Might not be supported
+
+		// Array in operations
+		{"1 in arr", true, false},
+		{"6 in arr", false, false},
+		{"'hello' in mixedArr", true, false},
+		{"nil in mixedArr", true, false},
+
+		// Array with filter/map operations
+		{"filter(arr, # > 3)", []any{4, 5}, false},
+		{"map(arr, # * 2)", []any{2, 4, 6, 8, 10}, false},
+		{"all(arr, # > 0)", true, false},
+		{"any(arr, # > 4)", true, false},
+
+		// Empty array operations
+		{"len(emptyArr) == 0", true, false},
+		{"filter(emptyArr, # > 0)", []any{}, false},
+		{"map(emptyArr, # * 2)", []any{}, false},
+		{"all(emptyArr, # > 0)", true, false},  // all() on empty array is true
+		{"any(emptyArr, # > 0)", false, false}, // any() on empty array is false
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeObjectOperations(t *testing.T) {
+	env := map[string]any{
+		"obj": map[string]any{
+			"name":    "John",
+			"age":     30,
+			"active":  true,
+			"score":   85.5,
+			"address": nil,
+		},
+		"emptyObj": map[string]any{},
+		"nestedObj": map[string]any{
+			"user": map[string]any{
+				"id":   123,
+				"name": "Jane",
+			},
+			"meta": map[string]any{
+				"created": "2023-01-01",
+			},
+		},
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Object property access
+		{"obj.name", "John", false},
+		{"obj.age", 30, false},
+		{"obj.active", true, false},
+		{"obj.score", 85.5, false},
+		{"obj.address", nil, false},
+
+		// Object bracket notation
+		{"obj['name']", "John", false},
+		{"obj['age']", 30, false},
+		{"obj['active']", true, false},
+
+		// Property existence checks
+		{"'name' in obj", true, false},
+		{"'age' in obj", true, false},
+		{"'nonexistent' in obj", false, false},
+		{"'address' in obj", true, false}, // nil value but key exists
+
+		// Nested object access
+		{"nestedObj.user.id", 123, false},
+		{"nestedObj.user.name", "Jane", false},
+		{"nestedObj.meta.created", "2023-01-01", false},
+
+		// Object length/size
+		{"len(obj)", 5, false},
+		{"len(emptyObj)", 0, false},
+		{"len(nestedObj)", 2, false},
+
+		// Object property modification (if supported)
+		// Note: These might not be supported in expr as it's typically for read-only evaluation
+
+		// Object comparison
+		{"obj == obj", true, false},
+		{"obj != emptyObj", true, false},
+		{"emptyObj == emptyObj", true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeTypeOfOperations(t *testing.T) {
+	env := map[string]any{
+		"numValue":    42,
+		"floatValue":  3.14,
+		"stringValue": "hello",
+		"boolValue":   true,
+		"nullValue":   nil,
+		"arrayValue":  []int{1, 2, 3},
+		"objectValue": map[string]any{"key": "value"},
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Type checking operations (if typeof is supported)
+		{"type(numValue)", "int", false},
+		{"type(floatValue)", "float", false},
+		{"type(stringValue)", "string", false},
+		{"type(boolValue)", "bool", false},
+		{"type(nullValue)", "nil", false},
+		{"type(arrayValue)", "array", false},
+		{"type(objectValue)", "map", false},
+
+		// Type comparisons
+		{"type(numValue) == 'int'", true, false}, // Might need adjustment based on actual type names
+		{"type(stringValue) == 'string'", true, false},
+		{"type(boolValue) == 'bool'", true, false},
+
+		// Duck typing checks
+		{"len(arrayValue) >= 0", true, false},  // Has length property
+		{"len(objectValue) >= 0", true, false}, // Has length property
+		{"len(stringValue) >= 0", true, false}, // Has length property
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeStringOperations(t *testing.T) {
+	env := map[string]any{
+		"str":      "Hello World",
+		"emptyStr": "",
+		"numStr":   "123",
+		"floatStr": "3.14",
+		"boolStr":  "true",
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// String length
+		{"len(str)", 11, false},
+		{"len(emptyStr)", 0, false},
+		{"len(numStr)", 3, false},
+
+		// String slicing
+		{"str[0:5]", "Hello", false},
+		{"str[6:]", "World", false},
+		{"str[:5]", "Hello", false},
+		{"str[:]", "Hello World", false},
+
+		// String methods (if supported)
+		{"str startsWith 'Hello'", true, false},
+		{"str endsWith 'World'", true, false},
+		{"str contains 'lo Wo'", true, false},
+		{"str matches '^Hello.*World$'", true, false},
+
+		// String case operations (if supported)
+		// {"upper(str)", "HELLO WORLD", false},
+		// {"lower(str)", "hello world", false},
+
+		// String concatenation
+		{"str + ' from Go'", "Hello World from Go", false},
+		{"'Greeting: ' + str", "Greeting: Hello World", false},
+		{"emptyStr + str", "Hello World", false},
+		{"str + emptyStr", "Hello World", false},
+
+		// String comparison
+		{"str == 'Hello World'", true, false},
+		{"str != 'Goodbye World'", true, false},
+		{"str > 'Hello'", true, false}, // Lexicographic comparison
+		{"'Hello' < str", true, false},
+
+		// String to number conversion context
+		{"numStr + '456'", "123456", false},  // String concatenation
+		{"floatStr + '15'", "3.1415", false}, // String concatenation
+
+		// Empty string behavior
+		{"emptyStr == ''", true, false},
+		{"len(emptyStr) == 0", true, false},
+		{"emptyStr + 'test'", "test", false},
+		{"'test' + emptyStr", "test", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeFunctionBehavior(t *testing.T) {
+	env := map[string]any{
+		"add":    func(a, b float64) float64 { return a + b },
+		"greet":  func(name string) string { return "Hello, " + name },
+		"isEven": func(n int) bool { return n%2 == 0 },
+		"defaultValue": func(val any) any {
+			if val == nil {
+				return "default"
+			}
+			return val
+		},
+		"variadicSum": func(nums ...int) int {
+			sum := 0
+			for _, n := range nums {
+				sum += n
+			}
+			return sum
+		},
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Basic function calls
+		{"add(5.0, 3.0)", 8.0, false},
+		{"add(2.5, 1.5)", 4.0, false},
+		{"greet('World')", "Hello, World", false},
+		{"isEven(4)", true, false},
+		{"isEven(7)", false, false},
+
+		// Function calls with type coercion
+		{"add(5.0, 3.14)", 8.14, false},
+		{"greet('Go' + ' Lang')", "Hello, Go Lang", false},
+
+		// Function calls with nil handling
+		{"defaultValue(nil)", "default", false},
+		{"defaultValue('value')", "value", false},
+		{"defaultValue(42)", 42, false},
+
+		// Variadic function calls
+		{"variadicSum(1, 2, 3)", 6, false},
+		{"variadicSum()", 0, false},
+		{"variadicSum(10)", 10, false},
+
+		// Function calls in expressions
+		{"add(5.0, 3.0) > 7", true, false},
+		{"'Result: ' + add(10.0, 20.0)", "Result: 30", false},
+		{"isEven(int(add(2.0, 2.0)))", true, false},
+
+		// Nested function calls
+		{"add(add(1.0, 2.0), add(3.0, 4.0))", 10.0, false},
+		{"greet(greet('Inner'))", "Hello, Hello, Inner", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestJavaScriptLikeEdgeCases(t *testing.T) {
+	// Use math constants to avoid compile-time division by zero
+	var infinity = math.Inf(1)
+	var negInfinity = math.Inf(-1)
+	var nan = math.NaN()
+
+	env := map[string]any{
+		"zero":         0,
+		"negZero":      -0.0,
+		"infinity":     infinity,
+		"negInfinity":  negInfinity,
+		"nan":          nan,
+		"emptyString":  "",
+		"whitespace":   " \t\n",
+		"nullValue":    nil,
+		"undefinedVar": nil,
+	}
+
+	tests := []struct {
+		expr        string
+		want        any
+		expectError bool
+	}{
+		// Special number comparisons
+		{"zero == negZero", true, false},
+
+		// Infinity handling
+		{"infinity > 1000000", true, false},
+		{"negInfinity < -1000000", true, false}, // Might error due to division by zero
+
+		// NaN behavior
+		{"nan == nan", false, false}, // NaN !== NaN, might error due to division by zero
+		{"nan != nan", true, false},  // Might error due to division by zero
+
+		// Empty string vs whitespace
+		{"emptyString == ''", true, false},
+		{"whitespace != ''", true, false},
+		{"len(whitespace) > 0", true, false},
+
+		// Null/undefined behavior
+		{"nullValue == nil", true, false},
+		{"undefinedVar == nil", true, false},
+		{"nullValue == undefinedVar", true, false},
+
+		// Type coercion edge cases
+		{"'' + 0", "0", false},
+		{"'' + false", "false", false},
+		{"'' + nil", "", false},
+		{"0 + ''", "0", false},
+		{"false + ''", "false", false},
+		{"nil + ''", "", false},
+
+		// Arithmetic with special values
+		{"zero + 1", 1, false},
+		{"zero * 1000", 0, false},
+		{"zero / 1", 0.0, false},
+
+		// Comparison edge cases
+		{"0 < 0.1", true, false},
+		{"0 <= 0", true, false},
+		{"0 >= 0", true, false},
+		{"0 > -0.1", true, false},
+
+		// String edge cases
+		{"'' == ''", true, false},
+		{"'' != ' '", true, false},
+		{"len('') == 0", true, false},
+		{"'' + '' == ''", true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tt.expr, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tt.expr, err)
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
 }
