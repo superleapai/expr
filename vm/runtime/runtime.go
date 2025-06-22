@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 
 	"github.com/expr-lang/expr/internal/deref"
 )
@@ -304,6 +305,19 @@ func ToInt(a any) int {
 		return 0
 	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if i, err := strconv.Atoi(x); err == nil {
+			return i
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return int(f)
+		}
+		panic(fmt.Sprintf("invalid operation: int(%q)", x))
 	case float32:
 		return int(x)
 	case float64:
@@ -334,7 +348,23 @@ func ToInt(a any) int {
 }
 
 func ToInt64(a any) int64 {
+	if IsNil(a) {
+		return 0
+	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if i, err := strconv.ParseInt(x, 10, 64); err == nil {
+			return i
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return int64(f)
+		}
+		panic(fmt.Sprintf("invalid operation: int64(%q)", x))
 	case float32:
 		return int64(x)
 	case float64:
@@ -365,7 +395,20 @@ func ToInt64(a any) int64 {
 }
 
 func ToFloat64(a any) float64 {
+	if IsNil(a) {
+		return 0
+	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return f
+		}
+		panic(fmt.Sprintf("invalid operation: float(%q)", x))
 	case float32:
 		return float64(x)
 	case float64:

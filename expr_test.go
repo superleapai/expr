@@ -2762,7 +2762,6 @@ func TestArithmeticAndComparisonOperators(t *testing.T) {
 		expectError bool
 	}{
 		// Addition
-		{" now() - duration('1h'``) +1  ", 3, false},
 		{"1 + 2", 3, false},
 		{"1.5 + 2.5", 4.0, false},
 		{"1 + 2.5", 3.5, false},
@@ -3232,14 +3231,14 @@ func TestNilArithmeticOperations(t *testing.T) {
 		{"nilValue + 5", "5", false},                 // nil + int becomes string concatenation
 		{"nilValue + 5.5", "5.5", false},             // nil + float becomes string concatenation
 		{"nilValue + 'world'", "<nil>world", false},  // nil + string
-		{"nilValue + true", "<nil>true", false},      // nil + bool
+		{"nilValue + true", "1", false},              // nil + bool
 		{"nilValue + nilValue", "<nil><nil>", false}, // nil + nil
 
 		// other types + nil
 		{"5 + nilValue", "5", false},                // int + nil becomes string concatenation
 		{"5.5 + nilValue", "5.5", false},            // float + nil becomes string concatenation
 		{"'hello' + nilValue", "hello<nil>", false}, // string + nil
-		{"true + nilValue", "true<nil>", false},     // bool + nil
+		{"true + nilValue", "1", false},             // bool + nil
 
 		// nil - other types
 		{"nilValue - 5", -5, false},       // nil - int = 0 - int

@@ -2144,26 +2144,8 @@ func Add(a, b interface{}) interface{} {
 		switch y := b.(type) {
 		case string:
 			return "" + y
-		case uint:
-			return 0 + int(y)
-		case uint8:
-			return 0 + int(y)
-		case uint16:
-			return 0 + int(y)
-		case uint32:
-			return 0 + int(y)
-		case uint64:
-			return 0 + int(y)
-		case int:
-			return 0 + y
-		case int8:
-			return 0 + int(y)
-		case int16:
-			return 0 + int(y)
-		case int32:
-			return 0 + int(y)
-		case int64:
-			return 0 + int(y)
+		case bool, uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+			return 0 + ToInt(y)
 		case float32:
 			return 0.0 + float64(y)
 		case float64:
@@ -2176,26 +2158,8 @@ func Add(a, b interface{}) interface{} {
 		switch x := a.(type) {
 		case string:
 			return x + ""
-		case uint:
-			return int(x) + 0
-		case uint8:
-			return int(x) + 0
-		case uint16:
-			return int(x) + 0
-		case uint32:
-			return int(x) + 0
-		case uint64:
-			return int(x) + 0
-		case int:
-			return x + 0
-		case int8:
-			return int(x) + 0
-		case int16:
-			return int(x) + 0
-		case int32:
-			return int(x) + 0
-		case int64:
-			return int(x) + 0
+		case bool, uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+			return 0 + ToInt(x)
 		case float32:
 			return float64(x) + 0.0
 		case float64:
