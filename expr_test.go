@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -5247,6 +5248,799 @@ func TestJavaScriptLikeEdgeCases(t *testing.T) {
 					t.Errorf("unexpected error for %q: %v", tt.expr, err)
 				} else if !deepEqual(result, tt.want) {
 					t.Errorf("%q: got %v (type %T), want %v (type %T)", tt.expr, result, result, tt.want, tt.want)
+				}
+			}
+		})
+	}
+}
+
+// Documentation test cases from Expr Language Definition
+
+func TestDocumentation_Literals(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// Boolean literals
+		{"true", true},
+		{"false", false},
+
+		// Integer literals
+		{"42", 42},
+		{"0x2A", 42},
+		{"0o52", 42},
+		{"0b101010", 42},
+
+		// Float literals
+		{"0.5", 0.5},
+		{".5", 0.5},
+
+		// String literals
+		{`"foo"`, "foo"},
+		{"'bar'", "bar"},
+		{`"Hello\nWorld"`, "Hello\nWorld"},
+
+		// Array literals
+		{"[1, 2, 3]", []any{1, 2, 3}},
+
+		// Map literals
+		{"{a: 1, b: 2, c: 3}", map[string]any{"a": 1, "b": 2, "c": 3}},
+
+		// Nil literal
+		{"nil", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_Operators(t *testing.T) {
+	env := map[string]any{
+		"user": map[string]any{
+			"Name": "John",
+		},
+		"array": []any{1, 2, 3, 4, 5},
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// Arithmetic operators
+		{"5 + 3", 8},
+		{"5 - 3", 2},
+		{"5 * 3", 15},
+		{"15 / 3", 5.0},
+		{"17 % 5", 2},
+		{"2 ^ 3", 8.0},
+		{"2 ** 3", 8.0},
+
+		// Comparison operators
+		{"5 == 5", true},
+		{"5 != 3", true},
+		{"5 > 3", true},
+		{"3 < 5", true},
+		{"5 >= 5", true},
+		{"5 <= 5", true},
+
+		// Logical operators
+		{"true && true", true},
+		{"true || false", true},
+		{"!false", true},
+		{"true and true", true},
+		{"true or false", true},
+		{"not false", true},
+
+		// Ternary operator
+		{"5 > 3 ? 'yes' : 'no'", "yes"},
+
+		// Nil coalescing
+		{"nil ?? 'default'", "default"},
+		{"'value' ?? 'default'", "value"},
+
+		// Membership operators
+		{"user.Name", "John"},
+		{"user['Name']", "John"},
+		{"array[0]", 1},
+		{"array[-1]", 5},
+		{`"John" in ["John", "Jane"]`, true},
+		{`"name" in {"name": "John", "age": 30}`, true},
+
+		// String operators
+		{"'Hello' + ' World'", "Hello World"},
+		{`"Hello World" contains "World"`, true},
+		{`"Hello World" startsWith "Hello"`, true},
+		{`"Hello World" endsWith "World"`, true},
+		{`"test@example.com" matches ".*@.*"`, true},
+
+		// Range operator
+		{"1..3", []any{1, 2, 3}},
+
+		// Slice operator
+		{"array[1:4]", []any{2, 3, 4}},
+		{"array[1:-1]", []any{2, 3, 4}},
+		{"array[:3]", []any{1, 2, 3}},
+		{"array[3:]", []any{4, 5}},
+		{"array[:]", []any{1, 2, 3, 4, 5}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_OptionalChaining(t *testing.T) {
+	env := map[string]any{
+		"author": map[string]any{
+			"User": map[string]any{
+				"Name": "John",
+			},
+		},
+		"nullAuthor": map[string]any{
+			"User": nil,
+		},
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		{"author.User?.Name", "John"},
+		{"nullAuthor.User?.Name", nil},
+		{"author.User?.Name ?? 'Anonymous'", "John"},
+		{"nullAuthor.User?.Name ?? 'Anonymous'", "Anonymous"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_Variables(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		{"let x = 42; x * 2", 84},
+		{"let x = 42; let y = 2; x * y", 84},
+		{"let name = 'test' | upper(); 'Hello, ' + name + '!'", "Hello, TEST!"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_Env(t *testing.T) {
+	env := map[string]any{
+		"foo": map[string]any{
+			"Name": "John",
+		},
+		"var with spaces": "test value",
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		{"foo.Name == $env['foo'].Name", true},
+		{"$env['var with spaces']", "test value"},
+		{"'foo' in $env", true},
+		{"'nonexistent' in $env", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_StringFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// trim
+		{`trim("  Hello  ")`, "Hello"},
+		{`trim("__Hello__", "_")`, "Hello"},
+
+		// trimPrefix
+		{`trimPrefix("HelloWorld", "Hello")`, "World"},
+
+		// trimSuffix
+		{`trimSuffix("HelloWorld", "World")`, "Hello"},
+
+		// upper
+		{`upper("hello")`, "HELLO"},
+
+		// lower
+		{`lower("HELLO")`, "hello"},
+
+		// split
+		{`split("apple,orange,grape", ",")`, []any{"apple", "orange", "grape"}},
+		{`split("apple,orange,grape", ",", 2)`, []any{"apple", "orange,grape"}},
+
+		// splitAfter
+		{`splitAfter("apple,orange,grape", ",")`, []any{"apple,", "orange,", "grape"}},
+		{`splitAfter("apple,orange,grape", ",", 2)`, []any{"apple,", "orange,grape"}},
+
+		// replace
+		{`replace("Hello World", "World", "Universe")`, "Hello Universe"},
+
+		// repeat
+		{`repeat("Hi", 3)`, "HiHiHi"},
+
+		// indexOf
+		{`indexOf("apple pie", "pie")`, 6},
+
+		// lastIndexOf
+		{`lastIndexOf("apple pie apple", "apple")`, 10},
+
+		// hasPrefix
+		{`hasPrefix("HelloWorld", "Hello")`, true},
+
+		// hasSuffix
+		{`hasSuffix("HelloWorld", "World")`, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_DateFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// duration
+		{`duration("1h").Seconds()`, 3600.0},
+
+		// date parsing
+		{`date("2023-08-14").Year()`, 2023},
+
+		// Basic date operations
+		{`duration("1h") > duration("30m")`, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_NumberFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// max
+		{"max(5, 7)", 7},
+
+		// min
+		{"min(5, 7)", 5},
+
+		// abs
+		{"abs(-5)", 5},
+
+		// ceil
+		{"ceil(1.5)", 2.0},
+
+		// floor
+		{"floor(1.5)", 1.0},
+
+		// round
+		{"round(1.5)", 2.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_ArrayFunctions(t *testing.T) {
+	env := map[string]any{
+		"tweets": []any{
+			map[string]any{"Size": 140},
+			map[string]any{"Size": 280},
+			map[string]any{"Size": 300},
+		},
+		"users": []any{
+			map[string]any{"Name": "John", "Age": 25},
+			map[string]any{"Name": "Jane", "Age": 30},
+			map[string]any{"Name": "Bob", "Age": 35},
+		},
+		"participants": []any{
+			map[string]any{"Winner": true},
+			map[string]any{"Winner": false},
+			map[string]any{"Winner": false},
+		},
+		"accounts": []any{
+			map[string]any{"Balance": 100},
+			map[string]any{"Balance": 200},
+			map[string]any{"Balance": 300},
+		},
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// all
+		{"all(tweets, {.Size < 400})", true},
+
+		// any
+		{"any(tweets, {.Size > 280})", true},
+
+		// one
+		{"one(participants, {.Winner})", true},
+
+		// none
+		{"none(tweets, {.Size > 400})", true},
+
+		// map
+		{"map(tweets, {.Size})", []any{140, 280, 300}},
+
+		// filter
+		{"filter(users, .Name startsWith 'J')", []any{
+			map[string]any{"Name": "John", "Age": 25},
+			map[string]any{"Name": "Jane", "Age": 30},
+		}},
+
+		// find
+		{"find([1, 2, 3, 4], # > 2)", 3},
+
+		// findIndex
+		{"findIndex([1, 2, 3, 4], # > 2)", 2},
+
+		// findLast
+		{"findLast([1, 2, 3, 4], # > 2)", 4},
+
+		// findLastIndex
+		{"findLastIndex([1, 2, 3, 4], # > 2)", 3},
+
+		// count with predicate
+		{"count(users, .Age > 25)", 2},
+
+		// count without predicate
+		{"count([true, false, true])", 2},
+
+		// concat
+		{"concat([1, 2], [3, 4])", []any{1, 2, 3, 4}},
+
+		// flatten
+		{"flatten([1, 2, [3, 4]])", []any{1, 2, 3, 4}},
+
+		// uniq
+		{"uniq([1, 2, 3, 2, 1])", []any{1, 2, 3}},
+
+		// join
+		{"join(['apple', 'orange', 'grape'], ',')", "apple,orange,grape"},
+		{"join(['apple', 'orange', 'grape'])", "appleorangegrape"},
+
+		// reduce
+		{"reduce(1..9, #acc + #)", 45},
+		{"reduce(1..9, #acc + #, 0)", 45},
+
+		// sum
+		{"sum([1, 2, 3])", 6},
+		{"sum(accounts, .Balance)", 600},
+
+		// mean
+		{"mean([1, 2, 3])", 2.0},
+
+		// median
+		{"median([1, 2, 3])", 2.0},
+
+		// first
+		{"first([1, 2, 3])", 1},
+
+		// last
+		{"last([1, 2, 3])", 3},
+
+		// take
+		{"take([1, 2, 3, 4], 2)", []any{1, 2}},
+
+		// reverse
+		{"reverse([3, 1, 4])", []any{4, 1, 3}},
+
+		// sort
+		{"sort([3, 1, 4])", []any{1, 3, 4}},
+		{"sort([3, 1, 4], 'desc')", []any{4, 3, 1}},
+
+		// sortBy
+		{"sortBy(users, .Age)", []any{
+			map[string]any{"Name": "John", "Age": 25},
+			map[string]any{"Name": "Jane", "Age": 30},
+			map[string]any{"Name": "Bob", "Age": 35},
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_MapFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// keys
+		{"keys({'name': 'John', 'age': 30})", []any{"name", "age"}},
+
+		// values
+		{"values({'name': 'John', 'age': 30})", []any{"John", 30}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			// For keys and values, we need to check if arrays contain the same elements
+			// since order might vary
+			resultSlice, ok1 := result.([]any)
+			wantSlice, ok2 := tt.want.([]any)
+			if !ok1 || !ok2 {
+				if !deepEqual(result, tt.want) {
+					t.Errorf("got %v, want %v", result, tt.want)
+				}
+			} else {
+				if len(resultSlice) != len(wantSlice) {
+					t.Errorf("got %v, want %v", result, tt.want)
+				} else {
+					// Check if all elements in want are present in result
+					for _, wantItem := range wantSlice {
+						found := false
+						for _, resultItem := range resultSlice {
+							if deepEqual(resultItem, wantItem) {
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Errorf("got %v, want %v", result, tt.want)
+							break
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestDocumentation_TypeConversionFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// type
+		{"type(42)", "int"},
+		{"type('hello')", "string"},
+
+		// int
+		{"int('123')", 123},
+
+		// float
+		{"float('123.45')", 123.45},
+
+		// string
+		{"string(123)", "123"},
+
+		// fromJSON
+		{"fromJSON('{\"name\": \"John\", \"age\": 30}')", map[string]any{"name": "John", "age": 30.0}},
+
+		// toBase64
+		{"toBase64('Hello World')", "SGVsbG8gV29ybGQ="},
+
+		// fromBase64
+		{"fromBase64('SGVsbG8gV29ybGQ=')", "Hello World"},
+
+		// fromPairs
+		{"fromPairs([['name', 'John'], ['age', 30]])", map[string]any{"name": "John", "age": 30}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else {
+				// Special handling for JSON and pairs functions that might have different ordering
+				if tt.expr == "toJSON({'name': 'John', 'age': 30})" {
+					// JSON order might vary, check if it's valid JSON with correct content
+					str, ok := result.(string)
+					if !ok {
+						t.Errorf("got %v, want string", result)
+					} else if !(strings.Contains(str, `"name":"John"`) && strings.Contains(str, `"age":30`)) {
+						t.Errorf("got %v, want JSON with name and age", result)
+					}
+				} else if tt.expr == "toPairs({'name': 'John', 'age': 30})" {
+					// Pairs order might vary, check structure
+					resultSlice, ok := result.([]any)
+					if !ok || len(resultSlice) != 2 {
+						t.Errorf("got %v, want array of 2 pairs", result)
+					}
+				} else if !deepEqual(result, tt.want) {
+					t.Errorf("got %v, want %v", result, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestDocumentation_MiscellaneousFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// len
+		{"len([1, 2, 3])", 3},
+		{"len({'name': 'John', 'age': 30})", 2},
+		{"len('Hello')", 5},
+
+		// get
+		{"get([1, 2, 3], 1)", 2},
+		{"get({'name': 'John', 'age': 30}, 'name')", "John"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_BitwiseFunctions(t *testing.T) {
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// bitand
+		{"bitand(0b1010, 0b1100)", 8}, // 0b1000
+
+		// bitor
+		{"bitor(0b1010, 0b1100)", 14}, // 0b1110
+
+		// bitxor
+		{"bitxor(0b1010, 0b1100)", 6}, // 0b0110
+
+		// bitnand
+		{"bitnand(0b1010, 0b1100)", 2}, // 0b0010
+
+		// bitnot
+		{"bitnot(0b1010)", -11}, // -0b1011
+
+		// bitshl
+		{"bitshl(0b101101, 2)", 180}, // 0b10110100
+
+		// bitshr
+		{"bitshr(0b101101, 2)", 11}, // 0b1011
+
+		// bitushr (unsigned right shift)
+		{"bitushr(0b101, 1)", 2}, // 0b10
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, nil)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_PipeOperator(t *testing.T) {
+	env := map[string]any{
+		"user": map[string]any{
+			"Name": "John Doe",
+		},
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// Pipe operator equivalence
+		{"'hello world' | upper() | split(' ')", []any{"HELLO", "WORLD"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_Predicates(t *testing.T) {
+	env := map[string]any{
+		"tweets": []any{
+			map[string]any{"Content": "Short tweet"},
+			map[string]any{"Content": "This is a very long tweet that exceeds 240 characters and should be filtered out by our predicate function when we test the filter functionality with predicates in the Expr language.This is a very long tweet that exceeds 240 characters and should be filtered out by our predicate function when we test the filter functionality with predicates in the Expr language."},
+		},
+		"posts": []any{
+			map[string]any{
+				"Author": "John",
+				"Comments": []any{
+					map[string]any{"Author": "John"},
+					map[string]any{"Author": "Jane"},
+				},
+			},
+			map[string]any{
+				"Author": "Jane",
+				"Comments": []any{
+					map[string]any{"Author": "Bob"},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		expr string
+		want any
+	}{
+		// Basic predicate with filter
+		{"filter(0..9, {# % 2 == 0})", []any{0, 2, 4, 6, 8}},
+
+		// Predicate with field access
+		{"filter(tweets, {len(.Content) > 240})", []any{
+			map[string]any{"Content": "This is a very long tweet that exceeds 240 characters and should be filtered out by our predicate function when we test the filter functionality with predicates in the Expr language.This is a very long tweet that exceeds 240 characters and should be filtered out by our predicate function when we test the filter functionality with predicates in the Expr language."},
+		}},
+
+		// Predicate without braces
+		{"filter(tweets, len(.Content) <= 240)", []any{
+			map[string]any{"Content": "Short tweet"},
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			} else if !deepEqual(result, tt.want) {
+				t.Errorf("got %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestDocumentation_ComplexExpressions(t *testing.T) {
+	env := map[string]any{
+		"users": []any{
+			map[string]any{"Name": "John", "Age": 25, "Active": true},
+			map[string]any{"Name": "Jane", "Age": 30, "Active": false},
+			map[string]any{"Name": "Bob", "Age": 35, "Active": true},
+		},
+		"createdAt": time.Now().Add(-2 * time.Hour),
+		"now":       func() time.Time { return time.Now() },
+	}
+
+	tests := []struct {
+		expr        string
+		expectError bool
+		checkResult func(result any) bool
+	}{
+		// Complex filtering and mapping
+		{
+			"map(filter(users, .Active), .Name)",
+			false,
+			func(result any) bool {
+				arr, ok := result.([]any)
+				return ok && len(arr) == 2 && arr[0] == "John" && arr[1] == "Bob"
+			},
+		},
+
+		// Date comparison
+		{
+			"createdAt > now() - duration('3h')",
+			false,
+			func(result any) bool {
+				b, ok := result.(bool)
+				return ok && b
+			},
+		},
+
+		// Complex conditional
+		{
+			"len(filter(users, .Age > 25)) > 1 ? 'Many adults' : 'Few adults'",
+			false,
+			func(result any) bool {
+				s, ok := result.(string)
+				return ok && s == "Many adults"
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			result, err := expr.Eval(tt.expr, env)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got result: %v", result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+				} else if !tt.checkResult(result) {
+					t.Errorf("result check failed for %v", result)
 				}
 			}
 		})
