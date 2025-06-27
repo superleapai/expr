@@ -3131,7 +3131,7 @@ func MoreOrEqual(a, b interface{}) bool {
 func Add(a, b interface{}) interface{} {
 	// Handle nil values with proper string concatenation behavior
 	if IsNil(a) && IsNil(b) {
-		return 0 // nil + nil = 0
+		return "" // nil + nil = 0
 	}
 	if IsNil(a) {
 		switch y := b.(type) {
