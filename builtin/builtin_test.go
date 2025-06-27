@@ -157,6 +157,14 @@ func TestBuiltin(t *testing.T) {
 		{`flatten([["a", "b"], [1, 2, [3, [[[["c", "d"], "e"]]], 4]]])`, []any{"a", "b", 1, 2, 3, "c", "d", "e", 4}},
 		{`uniq([1, 15, "a", 2, 3, 5, 2, "a", 2, "b"])`, []any{1, 15, "a", 2, 3, 5, "b"}},
 		{`uniq([[1, 2], "a", 2, 3, [1, 2], [1, 3]])`, []any{[]any{1, 2}, "a", 2, 3, []any{1, 3}}},
+		{`random(10) >= 0 && random(10) < 10`, true},
+		{`random(1, 10) >= 1 && random(1, 10) < 10`, true},
+		{`random(5.5) >= 0 && random(5.5) < 5`, true},
+		{`random(1.5, 5.5) >= 1 && random(1.5, 5.5) < 5`, true},
+		{`random("10") >= 0 && random("10") < 10`, true},
+		{`random("1", "10") >= 1 && random("1", "10") < 10`, true},
+		{`random(5.9) >= 0 && random(5.9) < 5`, true},
+		{`random(0.5, 3.5) >= 0 && random(0.5, 3.5) < 3`, true},
 	}
 
 	for _, test := range tests {
@@ -243,6 +251,16 @@ func TestBuiltin_errors(t *testing.T) {
 		{`timezone(nil)`, "cannot use nil as argument (type string) to call timezone (1:10)"},
 		{`flatten([1, 2], [3, 4])`, "invalid number of arguments (expected 1, got 2)"},
 		{`flatten(1)`, "cannot flatten int"},
+		{`random()`, "invalid number of arguments for random (expected 1 or 2, got 0)"},
+		{`random(1, 2, 3)`, "invalid number of arguments for random (expected 1 or 2, got 3)"},
+		{`random(0)`, "invalid argument for random: max must be positive, got 0"},
+		{`random(-1)`, "invalid argument for random: max must be positive, got -1"},
+		{`random(5, 5)`, "invalid arguments for random: max must be greater than min, got min=5, max=5"},
+		{`random(10, 5)`, "invalid arguments for random: max must be greater than min, got min=10, max=5"},
+		{`random(true)`, "invalid argument 1 for random (type bool)"},
+		{`random([1, 2])`, "invalid argument 1 for random (type []interface {})"},
+		{`random("invalid")`, "cannot convert string 'invalid' to int"},
+		{`random(1, "invalid")`, "cannot convert string 'invalid' to int"},
 	}
 	for _, test := range errorTests {
 		t.Run(test.input, func(t *testing.T) {
@@ -721,4 +739,120 @@ func TestBuiltin_with_deref(t *testing.T) {
 			assert.Equal(t, test.want, out)
 		})
 	}
+}
+
+func TestBuiltin_random(t *testing.T) {
+	env := map[string]any{}
+
+	// Test single argument (max)
+	t.Run("single argument", func(t *testing.T) {
+		tests := []struct {
+			input string
+			min   int
+			max   int
+		}{
+			{`random(10)`, 0, 10},
+			{`random(5)`, 0, 5},
+			{`random(1)`, 0, 1},
+		}
+
+		for _, test := range tests {
+			t.Run(test.input, func(t *testing.T) {
+				program, err := expr.Compile(test.input, expr.Env(env))
+				require.NoError(t, err)
+
+				// Run multiple times to ensure range is correct
+				for i := 0; i < 100; i++ {
+					out, err := expr.Run(program, env)
+					require.NoError(t, err)
+
+					result, ok := out.(int)
+					require.True(t, ok, "expected int result")
+					assert.GreaterOrEqual(t, result, test.min)
+					assert.Less(t, result, test.max)
+				}
+			})
+		}
+	})
+
+	// Test two arguments (min, max)
+	t.Run("two arguments", func(t *testing.T) {
+		tests := []struct {
+			input string
+			min   int
+			max   int
+		}{
+			{`random(1, 10)`, 1, 10},
+			{`random(5, 15)`, 5, 15},
+			{`random(-5, 5)`, -5, 5},
+		}
+
+		for _, test := range tests {
+			t.Run(test.input, func(t *testing.T) {
+				program, err := expr.Compile(test.input, expr.Env(env))
+				require.NoError(t, err)
+
+				// Run multiple times to ensure range is correct
+				for i := 0; i < 100; i++ {
+					out, err := expr.Run(program, env)
+					require.NoError(t, err)
+
+					result, ok := out.(int)
+					require.True(t, ok, "expected int result")
+					assert.GreaterOrEqual(t, result, test.min)
+					assert.Less(t, result, test.max)
+				}
+			})
+		}
+	})
+
+	// Test type conversion
+	t.Run("type conversion", func(t *testing.T) {
+		tests := []struct {
+			input string
+			min   int
+			max   int
+		}{
+			{`random(5.5)`, 0, 5},        // float to int (truncated)
+			{`random(1.5, 5.5)`, 1, 5},   // floats to int (truncated)
+			{`random("10")`, 0, 10},      // string to int
+			{`random("1", "10")`, 1, 10}, // strings to int
+			{`random(5.9)`, 0, 5},        // float with decimal
+			{`random(0.5, 3.5)`, 0, 3},   // floats with decimals
+		}
+
+		for _, test := range tests {
+			t.Run(test.input, func(t *testing.T) {
+				program, err := expr.Compile(test.input, expr.Env(env))
+				require.NoError(t, err)
+
+				// Run multiple times to ensure range is correct
+				for i := 0; i < 50; i++ {
+					out, err := expr.Run(program, env)
+					require.NoError(t, err)
+
+					result, ok := out.(int)
+					require.True(t, ok, "expected int result")
+					assert.GreaterOrEqual(t, result, test.min)
+					assert.Less(t, result, test.max)
+				}
+			})
+		}
+	})
+
+	// Test edge cases
+	t.Run("edge cases", func(t *testing.T) {
+		// Test with very small ranges
+		program, err := expr.Compile(`random(1, 2)`, expr.Env(env))
+		require.NoError(t, err)
+
+		out, err := expr.Run(program, env)
+		require.NoError(t, err)
+		assert.Equal(t, 1, out) // Should always return 1 for range [1, 2)
+
+		// Test with zero max (should error)
+		_, err = expr.Eval(`random(0)`, env)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "max must be positive")
+	})
 }
