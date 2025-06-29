@@ -3242,7 +3242,7 @@ func TestNilArithmeticOperations(t *testing.T) {
 		{"nilValue + 5.5", "5.5", false},       // nil + float becomes string concatenation
 		{"nilValue + 'world'", "world", false}, // nil + string
 		{"nilValue + true", "1", false},        // nil + bool
-		{"nilValue + nilValue", "0", false},    // nil + nil
+		{"nilValue + nilValue", "", false},     // nil + nil
 
 		// other types + nil
 		{"5 + nilValue", "5", false},           // int + nil becomes string concatenation
@@ -3617,7 +3617,7 @@ func TestCrossTypeArithmeticOperations(t *testing.T) {
 		// JavaScript-like behavior: if either operand is string, concatenate; otherwise add numerically
 
 		// nil + various types
-		{"nil + nil", 0, false, "nil + nil should be 0"},
+		{"nil + nil", "", false, "nil + nil should be 0"},
 		{"nil + true", 1, false, "nil + true: nil becomes 0, true becomes 1"},
 		{"nil + false", 0, false, "nil + false: both become 0"},
 		{"nil + zero", 0, false, "nil + 0: both are 0"},
@@ -3768,6 +3768,7 @@ func TestCrossTypeArithmeticOperations(t *testing.T) {
 
 		{"false * nil", 0, false, "false * nil: 0 * 0"},
 		{"false * true", 0, false, "false * true: 0 * 1"},
+		{"false * false", 0, false, "false * false: 0 * 0"},
 		{"false * zero", 0, false, "false * 0: 0 * 0"},
 		{"false * one", 0, false, "false * 1: 0 * 1"},
 		{"false * empty", 0, false, "false * empty string: 0 * 0"},
@@ -3775,6 +3776,7 @@ func TestCrossTypeArithmeticOperations(t *testing.T) {
 
 		{"zero * nil", 0, false, "0 * nil: 0 * 0"},
 		{"zero * true", 0, false, "0 * true: 0 * 1"},
+		{"zero * false", 0, false, "0 * false: 0 * 0"},
 		{"zero * empty", 0, false, "0 * empty string: 0 * 0"},
 		{"zero * numStr", 0, false, "0 * '42': 0 * 42"},
 
@@ -6041,6 +6043,352 @@ func TestDocumentation_ComplexExpressions(t *testing.T) {
 					t.Errorf("unexpected error: %v", err)
 				} else if !tt.checkResult(result) {
 					t.Errorf("result check failed for %v", result)
+				}
+			}
+		})
+	}
+}
+
+// Test cases for null handling in builtin functions
+func TestBuiltinFunctions_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// String functions - null handling
+		{"trim_null_string", "trim(nil)", nil, false},
+		{"trim_null_cutset", "trim('  hello  ', nil)", "  hello  ", false},
+		{"trimPrefix_null_string", "trimPrefix(nil, 'pre')", nil, false},
+		{"trimPrefix_null_prefix", "trimPrefix('prefix_test', nil)", "prefix_test", false},
+		{"trimSuffix_null_string", "trimSuffix(nil, 'suf')", nil, false},
+		{"trimSuffix_null_suffix", "trimSuffix('test_suffix', nil)", "test_suffix", false},
+		{"upper_null", "upper(nil)", nil, false},
+		{"lower_null", "lower(nil)", nil, false},
+		{"split_null_string", "split(nil, ',')", []any{}, false},
+		{"split_null_separator", "split('a,b,c', nil)", []any{"a,b,c"}, false},
+		{"splitAfter_null_string", "splitAfter(nil, ',')", []any{}, false},
+		{"splitAfter_null_separator", "splitAfter('a,b,c', nil)", []any{"a,b,c"}, false},
+		{"repeat_null_string", "repeat(nil, 3)", "", false},
+		{"indexOf_null_string", "indexOf(nil, 'test')", -1, false},
+		{"indexOf_null_substring", "indexOf('hello world', nil)", -1, false},
+		{"lastIndexOf_null_string", "lastIndexOf(nil, 'test')", -1, false},
+		{"lastIndexOf_null_substring", "lastIndexOf('hello world', nil)", -1, false},
+		{"hasPrefix_null_string", "hasPrefix(nil, 'pre')", false, false},
+		{"hasPrefix_null_prefix", "hasPrefix('prefix_test', nil)", true, false},
+		{"hasSuffix_null_string", "hasSuffix(nil, 'suf')", false, false},
+		{"hasSuffix_null_suffix", "hasSuffix('test_suffix', nil)", true, false},
+		{"replace_null_string", "replace(nil, 'old', 'new')", nil, false},
+		{"replace_null_old", "replace('hello world', nil, 'new')", "hello world", false},
+		{"replace_null_new", "replace('hello world', 'world', nil)", "hello ", false},
+
+		// Join function with null arrays and elements
+		{"join_null_array", "join(nil, ',')", "", false},
+		{"join_with_null_separator", "join(['a', 'b', 'c'], nil)", "abc", false},
+
+		// Encoding functions - null handling
+		{"fromJSON_null", "fromJSON(nil)", nil, false},
+		{"toBase64_null", "toBase64(nil)", "", false},
+		{"fromBase64_null", "fromBase64(nil)", "", false},
+		{"duration_null", "duration(nil)", "0s", false},
+
+		// Math functions - null handling
+		{"len_null", "len(nil)", 0, false},
+		{"abs_null", "abs(nil)", 0, false},
+		{"ceil_null", "ceil(nil)", 0.0, false},
+		{"floor_null", "floor(nil)", 0.0, false},
+		{"round_null", "round(nil)", 0.0, false},
+		{"int_null", "int(nil)", 0, false},
+		{"float_null", "float(nil)", 0.0, false},
+
+		// Type checking with null values
+		{"type_null", "type(nil)", "nil", false},
+
+		// Complex expressions with null values
+		{"null_coalescing", "nil ?? 'default'", "default", false},
+		{"null_string_concat", "nil + ' suffix'", " suffix", false},
+		{"string_null_concat", "'prefix ' + nil", "prefix ", false},
+		{"null_arithmetic", "nil + 5", 5, false},
+		{"arithmetic_null", "5 + nil", 5, false},
+		{"null_comparison", "nil == nil", true, false},
+		{"null_not_equal", "nil != 'test'", true, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinStringFunctions_EdgeCases(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Edge cases for string functions with null and empty values
+		{"trim_empty_string", "trim('')", "", false},
+		{"trim_whitespace_only", "trim('   ')", "", false},
+		{"trim_custom_cutset", "trim('___hello___', '_')", "hello", false},
+		{"trim_null_both", "trim(nil, nil)", nil, false},
+
+		{"split_empty_string", "split('', ',')", []any{""}, false},
+		{"split_empty_separator", "split('abc', '')", []any{"a", "b", "c"}, false},
+		{"split_with_limit", "split('a,b,c,d', ',', 2)", []any{"a", "b,c,d"}, false},
+		{"split_null_with_limit", "split(nil, ',', 2)", []any{}, false},
+
+		{"splitAfter_empty_string", "splitAfter('', ',')", []any{""}, false},
+		{"splitAfter_empty_separator", "splitAfter('abc', '')", []any{"a", "b", "c"}, false},
+		{"splitAfter_with_limit", "splitAfter('a,b,c,d', ',', 2)", []any{"a,", "b,c,d"}, false},
+
+		{"replace_with_count", "replace('hello hello hello', 'hello', 'hi', 2)", "hi hi hello", false},
+		{"replace_no_match", "replace('hello world', 'xyz', 'abc')", "hello world", false},
+		{"replace_empty_old", "replace('hello', '', 'x')", "xhxexlxlxox", false},
+
+		{"repeat_zero_times", "repeat('test', 0)", "", false},
+		{"repeat_negative_times", "repeat('test', -1)", "", true},
+		{"repeat_empty_string", "repeat('', 5)", "", false},
+
+		{"indexOf_not_found", "indexOf('hello', 'xyz')", -1, false},
+		{"indexOf_empty_string", "indexOf('', 'test')", -1, false},
+		{"indexOf_empty_substring", "indexOf('hello', '')", 0, false},
+
+		{"lastIndexOf_not_found", "lastIndexOf('hello', 'xyz')", -1, false},
+		{"lastIndexOf_empty_string", "lastIndexOf('', 'test')", -1, false},
+		{"lastIndexOf_empty_substring", "lastIndexOf('hello', '')", 5, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinMathFunctions_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Math functions with null values
+		{"abs_negative", "abs(-42)", 42, false},
+		{"abs_positive", "abs(42)", 42, false},
+		{"abs_zero", "abs(0)", 0, false},
+		{"abs_float", "abs(-3.14)", 3.14, false},
+		{"abs_null", "abs(nil)", 0, false},
+
+		{"ceil_positive", "ceil(3.14)", 4.0, false},
+		{"ceil_negative", "ceil(-3.14)", -3.0, false},
+		{"ceil_zero", "ceil(0)", 0.0, false},
+		{"ceil_integer", "ceil(5)", 5.0, false},
+		{"ceil_null", "ceil(nil)", 0.0, false},
+
+		{"floor_positive", "floor(3.14)", 3.0, false},
+		{"floor_negative", "floor(-3.14)", -4.0, false},
+		{"floor_zero", "floor(0)", 0.0, false},
+		{"floor_integer", "floor(5)", 5.0, false},
+		{"floor_null", "floor(nil)", 0.0, false},
+
+		{"round_positive", "round(3.14)", 3.0, false},
+		{"round_half_up", "round(3.5)", 4.0, false},
+		{"round_negative", "round(-3.14)", -3.0, false},
+		{"round_zero", "round(0)", 0.0, false},
+		{"round_null", "round(nil)", 0.0, false},
+
+		{"int_float", "int(3.14)", 3, false},
+		{"int_string", "int('42')", 42, false},
+		{"int_zero", "int(0)", 0, false},
+		{"int_null", "int(nil)", 0, false},
+
+		{"float_int", "float(42)", 42.0, false},
+		{"float_string", "float('3.14')", 3.14, false},
+		{"float_zero", "float(0)", 0.0, false},
+		{"float_null", "float(nil)", 0.0, false},
+
+		{"len_string", "len('hello')", 5, false},
+		{"len_array", "len([1, 2, 3])", 3, false},
+		{"len_empty_array", "len([])", 0, false},
+		{"len_map", "len({a: 1, b: 2})", 2, false},
+		{"len_empty_map", "len({})", 0, false},
+		{"len_null", "len(nil)", 0, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !approximatelyEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinAggregationFunctions_NullHandling(t *testing.T) {
+	env := map[string]any{
+		"numbers":        []any{1, 2, 3, 4, 5},
+		"numbersWithNil": []any{1, nil, 3, nil, 5},
+		"emptyArray":     []any{},
+		"allNilArray":    []any{nil, nil, nil},
+		"floats":         []any{1.1, 2.2, 3.3},
+		"floatsWithNil":  []any{1.1, nil, 3.3, nil},
+		"objects": []any{
+			map[string]any{"value": 10},
+			map[string]any{"value": 20},
+			map[string]any{"value": 30},
+		},
+		"objectsWithNil": []any{
+			map[string]any{"value": 10},
+			map[string]any{"value": nil},
+			map[string]any{"value": 30},
+		},
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Sum function
+		{"sum_numbers", "sum(numbers)", 15, false},
+		{"sum_with_nil", "sum(numbersWithNil)", 9, false}, // Should skip nil values
+		{"sum_empty", "sum(emptyArray)", 0, false},
+		{"sum_all_nil", "sum(allNilArray)", 0, false},
+		{"sum_floats", "sum(floats)", 6.6, false},
+		{"sum_floats_with_nil", "sum(floatsWithNil)", 4.4, false},
+		{"sum_objects", "sum(objects, .value)", 60, false},
+		{"sum_objects_with_nil", "sum(objectsWithNil, .value)", 40, false}, // Should skip nil values
+
+		// Mean function
+		{"mean_numbers", "mean(numbers)", 3.0, false},
+		{"mean_with_nil", "mean(numbersWithNil)", 3.0, false}, // Should skip nil values: (1+3+5)/3 = 3
+		{"mean_floats", "mean(floats)", 2.2, false},
+		{"mean_floats_with_nil", "mean(floatsWithNil)", 2.2, false}, // Should skip nil: (1.1+3.3)/2 = 2.2
+
+		// Median function
+		{"median_numbers", "median(numbers)", 3.0, false},
+		{"median_with_nil", "median(numbersWithNil)", 3.0, false}, // Should skip nil values
+		{"median_floats", "median(floats)", 2.2, false},
+		{"median_floats_with_nil", "median(floatsWithNil)", 2.2, false}, // Should skip nil values
+
+		// Max function
+		{"max_numbers", "max(numbers)", 5, false},
+		{"max_with_nil", "max(numbersWithNil)", 5, false}, // Should skip nil values
+		{"max_floats", "max(floats)", 3.3, false},
+		{"max_floats_with_nil", "max(floatsWithNil)", 3.3, false},
+
+		// Min function
+		{"min_numbers", "min(numbers)", 1, false},
+		{"min_with_nil", "min(numbersWithNil)", 1, false}, // Should skip nil values
+		{"min_floats", "min(floats)", 1.1, false},
+		{"min_floats_with_nil", "min(floatsWithNil)", 1.1, false},
+
+		// Count function
+		{"count_numbers", "count(numbers)", 5, false},
+		{"count_with_nil", "count(numbersWithNil)", 3, false}, // Count non-nil elements only
+		{"count_predicate", "count(numbers, # > 3)", 2, false},
+		{"count_predicate_with_nil", "count(numbersWithNil, # != nil)", 3, false}, // Count non-nil elements
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !approximatelyEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinComplexNullScenarios(t *testing.T) {
+	env := map[string]any{
+		"user": map[string]any{
+			"name":    "John",
+			"email":   nil,
+			"profile": nil,
+			"tags":    []any{"admin", nil, "user"},
+		},
+		"data": map[string]any{
+			"values": []any{1, nil, 3, nil, 5},
+			"items":  nil,
+		},
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Complex null scenarios
+		{"null_field_access", "user.email", nil, false},
+		{"null_field_concat", "user.name + ' - ' + (user.email ?? 'No email')", "John - No email", false},
+		{"null_in_array", "nil in user.tags", true, false},
+		{"filter_null_array", "filter(user.tags, # != nil)", []any{"admin", "user"}, false},
+		{"map_with_null_handling", "map(data.values, # ?? 0)", []any{1, 0, 3, 0, 5}, false},
+		{"sum_with_nulls", "sum(data.values)", 9, false}, // Should skip nil values
+		{"count_non_nulls", "count(data.values, # != nil)", 3, false},
+		{"join_with_nulls", "join(user.tags, ',')", "admin,,user", false}, // nil becomes empty in join
+		{"string_operations_with_null", "upper(user.email ?? 'default')", "DEFAULT", false},
+		{"null_safe_chaining", "user.profile?.name ?? 'Unknown'", "Unknown", false},
+		{"complex_null_expression", "(user.email ?? '') + (len(user.name) > 0 ? ' (' + user.name + ')' : '')", " (John)", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
 				}
 			}
 		})

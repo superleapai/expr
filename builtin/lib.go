@@ -12,6 +12,9 @@ import (
 )
 
 func Len(x any) any {
+	if x == nil {
+		return 0
+	}
 	v := reflect.ValueOf(x)
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice, reflect.Map:
@@ -58,6 +61,9 @@ func Type(arg any) any {
 }
 
 func Abs(x any) any {
+	if x == nil {
+		return 0
+	}
 	switch x := x.(type) {
 	case float32:
 		if x < 0 {
@@ -136,6 +142,9 @@ func Abs(x any) any {
 }
 
 func Ceil(x any) any {
+	if x == nil {
+		return 0.0
+	}
 	switch x := x.(type) {
 	case float32:
 		return math.Ceil(float64(x))
@@ -148,6 +157,9 @@ func Ceil(x any) any {
 }
 
 func Floor(x any) any {
+	if x == nil {
+		return 0.0
+	}
 	switch x := x.(type) {
 	case float32:
 		return math.Floor(float64(x))
@@ -160,6 +172,9 @@ func Floor(x any) any {
 }
 
 func Round(x any) any {
+	if x == nil {
+		return 0.0
+	}
 	switch x := x.(type) {
 	case float32:
 		return math.Round(float64(x))
@@ -172,6 +187,9 @@ func Round(x any) any {
 }
 
 func Int(x any) any {
+	if x == nil {
+		return 0
+	}
 	switch x := x.(type) {
 	case float32:
 		return int(x)
@@ -213,6 +231,9 @@ func Int(x any) any {
 }
 
 func Float(x any) any {
+	if x == nil {
+		return 0.0
+	}
 	switch x := x.(type) {
 	case float32:
 		return float64(x)
@@ -256,6 +277,11 @@ func String(arg any) any {
 func minMax(name string, fn func(any, any) bool, args ...any) (any, error) {
 	var val any
 	for _, arg := range args {
+		// Handle null values - skip them
+		if arg == nil {
+			continue
+		}
+
 		rv := reflect.ValueOf(arg)
 		switch rv.Kind() {
 		case reflect.Array, reflect.Slice:
@@ -273,7 +299,9 @@ func minMax(name string, fn func(any, any) bool, args ...any) (any, error) {
 						val = elemVal
 					}
 				default:
-					return nil, fmt.Errorf("invalid argument for %s (type %T)", name, elemVal)
+					if elemVal != nil {
+						return nil, fmt.Errorf("invalid argument for %s (type %T)", name, elemVal)
+					}
 				}
 
 			}
@@ -299,6 +327,11 @@ func mean(args ...any) (int, float64, error) {
 	var count int
 
 	for _, arg := range args {
+		// Handle null values - skip them
+		if arg == nil {
+			continue
+		}
+
 		rv := reflect.ValueOf(arg)
 		switch rv.Kind() {
 		case reflect.Array, reflect.Slice:
@@ -331,6 +364,11 @@ func median(args ...any) ([]float64, error) {
 	var values []float64
 
 	for _, arg := range args {
+		// Handle null values - skip them
+		if arg == nil {
+			continue
+		}
+
 		rv := reflect.ValueOf(arg)
 		switch rv.Kind() {
 		case reflect.Array, reflect.Slice:
