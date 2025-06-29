@@ -96,7 +96,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case uint8:
 		switch y := b.(type) {
@@ -127,7 +130,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case uint16:
 		switch y := b.(type) {
@@ -158,7 +164,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case uint32:
 		switch y := b.(type) {
@@ -189,7 +198,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case uint64:
 		switch y := b.(type) {
@@ -220,7 +232,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case int:
 		switch y := b.(type) {
@@ -251,7 +266,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case int8:
 		switch y := b.(type) {
@@ -282,7 +300,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case int16:
 		switch y := b.(type) {
@@ -313,7 +334,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case int32:
 		switch y := b.(type) {
@@ -344,7 +368,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case int64:
 		switch y := b.(type) {
@@ -375,7 +402,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case float32:
 		switch y := b.(type) {
@@ -406,7 +436,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case float64:
 		switch y := b.(type) {
@@ -437,7 +470,10 @@ func Equal(a, b interface{}) bool {
 		case bool:
 			return ToFloat64(x) == ToFloat64(y)
 		case string:
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(y); ok {
+				return float64(x) == val
+			}
+			return false
 		}
 	case []any:
 		switch y := b.(type) {
@@ -792,7 +828,10 @@ func Equal(a, b interface{}) bool {
 			if x == "" {
 				return ToInt(y) == 0
 			}
-			return ToFloat64(x) == ToFloat64(y)
+			if val, ok := ToFloat64Safe(x); ok {
+				return val == ToFloat64(y)
+			}
+			return false
 		}
 	case time.Time:
 		switch y := b.(type) {
