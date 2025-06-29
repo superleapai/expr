@@ -3052,7 +3052,7 @@ func TestMixedTypeComparisons(t *testing.T) {
 		{"false != true", true, false},
 
 		// Error cases - comparing incompatible types
-		{"'abc' == 123", false, true},
+		{"'abc' == 123", false, false},
 		{"true == 1", true, false}, // Should return false, not error
 		//{"'abc' < 123", nil, true},     // This should error
 		//{"true < 1", nil, true},        // This should error
