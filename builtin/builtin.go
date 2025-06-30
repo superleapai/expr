@@ -852,7 +852,7 @@ var Builtins = []*Function{
 
 			// Handle nil inputs
 			if len(args) == 0 || args[0] == nil {
-				var t time.Time
+				t := time.Unix(0, 0)
 				if tz != nil {
 					t = t.In(tz)
 				}
@@ -908,7 +908,7 @@ var Builtins = []*Function{
 			if len(args) == 2 {
 				// Handle nil layout
 				if args[1] == nil {
-					var t time.Time
+					t := time.Unix(0, 0)
 					if tz != nil {
 						t = t.In(tz)
 					}
@@ -923,7 +923,7 @@ var Builtins = []*Function{
 			if len(args) == 3 {
 				// Handle nil layout or timezone
 				if args[1] == nil || args[2] == nil {
-					var t time.Time
+					t := time.Unix(0, 0)
 					if tz != nil {
 						t = t.In(tz)
 					}
@@ -1064,9 +1064,14 @@ var Builtins = []*Function{
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil, fmt.Errorf("cannot take from %s", v.Kind())
 			}
-			n := reflect.ValueOf(args[1])
-			if !n.CanInt() {
-				return nil, fmt.Errorf("cannot take %s elements", n.Kind())
+			var n reflect.Value
+			if args[1] == nil {
+				n = reflect.ValueOf(0)
+			} else {
+				n = reflect.ValueOf(args[1])
+				if !n.CanInt() {
+					return nil, fmt.Errorf("cannot take %s elements", n.Kind())
+				}
 			}
 			to := 0
 			if n.Int() > int64(v.Len()) {
