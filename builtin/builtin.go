@@ -850,6 +850,15 @@ var Builtins = []*Function{
 				args = args[1:]
 			}
 
+			// Handle nil inputs
+			if len(args) == 0 || args[0] == nil {
+				var t time.Time
+				if tz != nil {
+					t = t.In(tz)
+				}
+				return t, nil
+			}
+
 			// Handle epoch timestamp (numeric input)
 			switch v := args[0].(type) {
 			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
@@ -897,6 +906,14 @@ var Builtins = []*Function{
 			// Handle string input (existing functionality)
 			date := args[0].(string)
 			if len(args) == 2 {
+				// Handle nil layout
+				if args[1] == nil {
+					var t time.Time
+					if tz != nil {
+						t = t.In(tz)
+					}
+					return t, nil
+				}
 				layout := args[1].(string)
 				if tz != nil {
 					return time.ParseInLocation(layout, date, tz)
@@ -904,6 +921,14 @@ var Builtins = []*Function{
 				return time.Parse(layout, date)
 			}
 			if len(args) == 3 {
+				// Handle nil layout or timezone
+				if args[1] == nil || args[2] == nil {
+					var t time.Time
+					if tz != nil {
+						t = t.In(tz)
+					}
+					return t, nil
+				}
 				layout := args[1].(string)
 				timeZone := args[2].(string)
 				tz, err := time.LoadLocation(timeZone)
@@ -963,6 +988,10 @@ var Builtins = []*Function{
 	{
 		Name: "timezone",
 		Func: func(args ...any) (any, error) {
+			// Handle nil inputs
+			if args[0] == nil {
+				return time.UTC, nil // Return UTC as default timezone for nil
+			}
 			tz, err := time.LoadLocation(args[0].(string))
 			if err != nil {
 				return nil, err
@@ -1027,6 +1056,10 @@ var Builtins = []*Function{
 			if len(args) != 2 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 2, got %d)", len(args))
 			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil, fmt.Errorf("cannot take from %s", v.Kind())
@@ -1066,6 +1099,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
 				return nil, fmt.Errorf("cannot get keys from %s", v.Kind())
@@ -1095,6 +1132,10 @@ var Builtins = []*Function{
 		Func: func(args ...any) (any, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
 			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
@@ -1126,6 +1167,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
 				return nil, fmt.Errorf("cannot transform %s to pairs", v.Kind())
@@ -1154,6 +1199,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return map[any]any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil, fmt.Errorf("cannot transform %s from pairs", v)
@@ -1161,6 +1210,10 @@ var Builtins = []*Function{
 			out := reflect.MakeMap(mapType)
 			for i := 0; i < v.Len(); i++ {
 				pair := deref.Value(v.Index(i))
+				// Skip nil pairs
+				if !pair.IsValid() || (pair.Kind() == reflect.Ptr && pair.IsNil()) {
+					continue
+				}
 				if pair.Kind() != reflect.Array && pair.Kind() != reflect.Slice {
 					return nil, fmt.Errorf("invalid pair %v", pair)
 				}
@@ -1189,6 +1242,11 @@ var Builtins = []*Function{
 		Safe: func(args ...any) (any, uint, error) {
 			if len(args) != 1 {
 				return nil, 0, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, 0, nil
 			}
 
 			v := reflect.ValueOf(args[0])
@@ -1224,6 +1282,11 @@ var Builtins = []*Function{
 		Func: func(args ...any) (any, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, nil
 			}
 
 			v := reflect.ValueOf(args[0])
@@ -1280,6 +1343,11 @@ var Builtins = []*Function{
 			var arr []any
 
 			for _, arg := range args {
+				// Handle nil arrays by treating them as empty arrays
+				if arg == nil {
+					continue
+				}
+
 				v := reflect.ValueOf(arg)
 
 				if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
@@ -1318,6 +1386,10 @@ var Builtins = []*Function{
 			var size uint
 			if len(args) != 1 {
 				return nil, 0, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, 0, nil
 			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {

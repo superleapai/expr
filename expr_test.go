@@ -6394,3 +6394,789 @@ func TestBuiltinComplexNullScenarios(t *testing.T) {
 		})
 	}
 }
+
+func TestBuiltinArrayFunctions_NullHandling(t *testing.T) {
+	env := map[string]any{
+		"numbers":        []any{1, 2, 3, 4, 5},
+		"numbersWithNil": []any{1, nil, 3, nil, 5},
+		"emptyArray":     []any{},
+		"allNilArray":    []any{nil, nil, nil},
+		"mixedArray":     []any{1, "hello", 3.14, nil, true},
+		"strings":        []any{"apple", "banana", "cherry"},
+		"stringsWithNil": []any{"apple", nil, "cherry", nil},
+		"objects": []any{
+			map[string]any{"value": 10, "name": "A"},
+			map[string]any{"value": 20, "name": "B"},
+			map[string]any{"value": 30, "name": "C"},
+		},
+		"objectsWithNil": []any{
+			map[string]any{"value": 10, "name": "A"},
+			map[string]any{"value": nil, "name": nil},
+			map[string]any{"value": 30, "name": "C"},
+		},
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// all() function with null handling
+		{"all_null_array", "all(nil, # > 0)", true, false}, // all() on nil should return true (vacuous truth)
+		{"all_empty_array", "all(emptyArray, # > 0)", true, false},
+		{"all_with_nils", "all(numbersWithNil, # == nil or # > 0)", true, false},
+		{"all_numbers_positive", "all(numbers, # > 0)", true, false},
+		{"all_numbers_greater_than_3", "all(numbers, # > 3)", false, false},
+
+		// any() function with null handling
+		{"any_null_array", "any(nil, # > 0)", false, false}, // any() on nil should return false
+		{"any_empty_array", "any(emptyArray, # > 0)", false, false},
+		{"any_with_nils", "any(numbersWithNil, # == nil)", true, false},
+		{"any_numbers_greater_than_3", "any(numbers, # > 3)", true, false},
+		{"any_numbers_greater_than_10", "any(numbers, # > 10)", false, false},
+
+		// one() function with null handling
+		{"one_null_array", "one(nil, # > 0)", false, false}, // one() on nil should return false
+		{"one_empty_array", "one(emptyArray, # > 0)", false, false},
+		{"one_single_match", "one(numbers, # == 3)", true, false},
+		{"one_multiple_matches", "one(numbers, # > 3)", false, false},
+		{"one_with_nils", "one(numbersWithNil, # == 3)", true, false},
+
+		// none() function with null handling
+		{"none_null_array", "none(nil, # > 0)", true, false}, // none() on nil should return true
+		{"none_empty_array", "none(emptyArray, # > 0)", true, false},
+		{"none_no_matches", "none(numbers, # > 10)", true, false},
+		{"none_with_matches", "none(numbers, # > 3)", false, false},
+		{"none_with_nils", "none(numbersWithNil, # == nil)", false, false},
+
+		// map() function with null handling
+		{"map_null_array", "map(nil, # * 2)", []any{}, false}, // map() on nil should return empty array
+		{"map_empty_array", "map(emptyArray, # * 2)", []any{}, false},
+		{"map_numbers", "map(numbers, # * 2)", []any{2, 4, 6, 8, 10}, false},
+		{"map_with_nils", "map(numbersWithNil, # ?? 0)", []any{1, 0, 3, 0, 5}, false},
+		{"map_objects", "map(objects, .name)", []any{"A", "B", "C"}, false},
+		{"map_objects_with_nils", "map(objectsWithNil, .name ?? 'Unknown')", []any{"A", "Unknown", "C"}, false},
+
+		// filter() function with null handling
+		{"filter_null_array", "filter(nil, # > 0)", []any{}, false}, // filter() on nil should return empty array
+		{"filter_empty_array", "filter(emptyArray, # > 0)", []any{}, false},
+		{"filter_numbers", "filter(numbers, # > 3)", []any{4, 5}, false},
+		{"filter_with_nils", "filter(numbersWithNil, # != nil)", []any{1, 3, 5}, false},
+		{"filter_objects", "filter(objects, .value > 15)", []any{map[string]any{"value": 20, "name": "B"}, map[string]any{"value": 30, "name": "C"}}, false},
+
+		// find() function with null handling
+		{"find_null_array", "find(nil, # > 0)", nil, false}, // find() on nil should return nil
+		{"find_empty_array", "find(emptyArray, # > 0)", nil, false},
+		{"find_numbers", "find(numbers, # > 3)", 4, false},
+		{"find_no_match", "find(numbers, # > 10)", nil, false},
+		{"find_with_nils", "find(numbersWithNil, # == nil)", nil, false},
+		{"find_first_non_nil", "find(numbersWithNil, # != nil)", 1, false},
+
+		// findIndex() function with null handling
+		{"findIndex_null_array", "findIndex(nil, # > 0)", -1, false}, // findIndex() on nil should return -1
+		{"findIndex_empty_array", "findIndex(emptyArray, # > 0)", -1, false},
+		{"findIndex_numbers", "findIndex(numbers, # > 3)", 3, false},
+		{"findIndex_no_match", "findIndex(numbers, # > 10)", -1, false},
+		{"findIndex_with_nils", "findIndex(numbersWithNil, # == nil)", 1, false},
+
+		// findLast() function with null handling
+		{"findLast_null_array", "findLast(nil, # > 0)", nil, false}, // findLast() on nil should return nil
+		{"findLast_empty_array", "findLast(emptyArray, # > 0)", nil, false},
+		{"findLast_numbers", "findLast(numbers, # > 3)", 5, false},
+		{"findLast_no_match", "findLast(numbers, # > 10)", nil, false},
+		{"findLast_with_nils", "findLast(numbersWithNil, # == nil)", nil, false},
+
+		// findLastIndex() function with null handling
+		{"findLastIndex_null_array", "findLastIndex(nil, # > 0)", -1, false}, // findLastIndex() on nil should return -1
+		{"findLastIndex_empty_array", "findLastIndex(emptyArray, # > 0)", -1, false},
+		{"findLastIndex_numbers", "findLastIndex(numbers, # > 3)", 4, false},
+		{"findLastIndex_no_match", "findLastIndex(numbers, # > 10)", -1, false},
+		{"findLastIndex_with_nils", "findLastIndex(numbersWithNil, # == nil)", 3, false},
+
+		// groupBy() function with null handling
+		{"groupBy_null_array", "groupBy(nil, # % 2)", map[any][]any{}, false}, // groupBy() on nil should return empty map
+		{"groupBy_empty_array", "groupBy(emptyArray, # % 2)", map[any][]any{}, false},
+		{"groupBy_numbers", "groupBy(numbers, # % 2)", map[any][]any{1: []any{1, 3, 5}, 0: []any{2, 4}}, false},
+		{"groupBy_with_nils", "groupBy(numbersWithNil, # ?? -1)", map[any][]any{1: []any{1}, -1: []any{nil, nil}, 3: []any{3}, 5: []any{5}}, false},
+
+		// concat() function with null handling
+		{"concat_with_null", "concat([1, 2], nil, [3, 4])", []any{1, 2, 3, 4}, false}, // concat() should skip nil arrays
+		{"concat_null_first", "concat(nil, [1, 2], [3, 4])", []any{1, 2, 3, 4}, false},
+		{"concat_all_null", "concat(nil, nil, nil)", []any{}, false},
+		{"concat_empty_and_null", "concat([], nil, [])", []any{}, false},
+
+		// flatten() function with null handling
+		{"flatten_null_array", "flatten(nil)", []any{}, false}, // flatten() on nil should return empty array
+		{"flatten_with_nils", "flatten([1, nil, [2, 3], nil, [4, [5, 6]]])", []any{1, nil, 2, 3, nil, 4, []any{5, 6}}, false},
+		{"flatten_nested_nils", "flatten([[1, nil], [nil, 2], [3]])", []any{1, nil, nil, 2, 3}, false},
+
+		// uniq() function with null handling
+		{"uniq_null_array", "uniq(nil)", []any{}, false}, // uniq() on nil should return empty array
+		{"uniq_with_nils", "uniq([1, nil, 2, nil, 1, 3])", []any{1, nil, 2, 3}, false},
+		{"uniq_all_nils", "uniq([nil, nil, nil])", []any{nil}, false},
+		{"uniq_mixed", "uniq([1, 'a', nil, 1, 'a', nil])", []any{1, "a", nil}, false},
+
+		// join() function with null handling - already covered in existing tests but adding more cases
+		{"join_strings_with_nils", "join(stringsWithNil, ',')", "apple,,cherry,", false}, // nil becomes empty string
+		{"join_null_separator", "join(strings, nil)", "applebananacherry", false},        // nil separator becomes empty string
+
+		// reduce() function with null handling
+		{"reduce_null_array", "reduce(nil, #acc + #, 0)", 0, false}, // reduce() on nil should return initial value
+		{"reduce_empty_array", "reduce(emptyArray, #acc + #, 0)", 0, false},
+		{"reduce_numbers", "reduce(numbers, #acc + #, 0)", 15, false},
+		{"reduce_with_nils", "reduce(numbersWithNil, #acc + (# ?? 0), 0)", 9, false},
+		{"reduce_without_initial", "reduce(numbers, #acc + #)", 15, false},
+
+		// first() function with null handling
+		{"first_null_array", "first(nil)", nil, false}, // first() on nil should return nil
+		{"first_empty_array", "first(emptyArray)", nil, false},
+		{"first_numbers", "first(numbers)", 1, false},
+		{"first_with_nils", "first(numbersWithNil)", 1, false},
+		{"first_all_nils", "first(allNilArray)", nil, false},
+
+		// last() function with null handling
+		{"last_null_array", "last(nil)", nil, false}, // last() on nil should return nil
+		{"last_empty_array", "last(emptyArray)", nil, false},
+		{"last_numbers", "last(numbers)", 5, false},
+		{"last_with_nils", "last(numbersWithNil)", 5, false},
+		{"last_all_nils", "last(allNilArray)", nil, false},
+
+		// take() function with null handling
+		{"take_null_array", "take(nil, 3)", []any{}, false}, // take() on nil should return empty array
+		{"take_empty_array", "take(emptyArray, 3)", []any{}, false},
+		{"take_numbers", "take(numbers, 3)", []any{1, 2, 3}, false},
+		{"take_with_nils", "take(numbersWithNil, 3)", []any{1, nil, 3}, false},
+		{"take_more_than_length", "take(numbers, 10)", []any{1, 2, 3, 4, 5}, false},
+
+		// reverse() function with null handling
+		{"reverse_null_array", "reverse(nil)", []any{}, false}, // reverse() on nil should return empty array
+		{"reverse_empty_array", "reverse(emptyArray)", []any{}, false},
+		{"reverse_numbers", "reverse(numbers)", []any{5, 4, 3, 2, 1}, false},
+		{"reverse_with_nils", "reverse(numbersWithNil)", []any{5, nil, 3, nil, 1}, false},
+
+		// sort() function with null handling
+		{"sort_null_array", "sort(nil)", []any{}, false}, // sort() on nil should return empty array
+		{"sort_empty_array", "sort(emptyArray)", []any{}, false},
+		{"sort_numbers", "sort([3, 1, 4, 1, 5])", []any{1, 1, 3, 4, 5}, false},
+		{"sort_numbers_desc", "sort([3, 1, 4, 1, 5], 'desc')", []any{5, 4, 3, 1, 1}, false},
+		{"sort_with_nils", "sort([3, nil, 1, nil, 2])", []any{nil, nil, 1, 2, 3}, false}, // nils should sort first
+
+		// sortBy() function with null handling
+		{"sortBy_null_array", "sortBy(nil, .value)", []any{}, false}, // sortBy() on nil should return empty array
+		{"sortBy_empty_array", "sortBy(emptyArray, .value)", []any{}, false},
+		{"sortBy_objects", "sortBy(objects, .value)", []any{map[string]any{"value": 10, "name": "A"}, map[string]any{"value": 20, "name": "B"}, map[string]any{"value": 30, "name": "C"}}, false},
+		{"sortBy_objects_desc", "sortBy(objects, .value, 'desc')", []any{map[string]any{"value": 30, "name": "C"}, map[string]any{"value": 20, "name": "B"}, map[string]any{"value": 10, "name": "A"}}, false},
+		{"sortBy_objects_with_nils", "sortBy(objectsWithNil, .value ?? 0)", []any{map[string]any{"value": nil, "name": nil}, map[string]any{"value": 10, "name": "A"}, map[string]any{"value": 30, "name": "C"}}, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinMapFunctions_NullHandling(t *testing.T) {
+	env := map[string]any{
+		"validMap": map[string]any{
+			"name": "John",
+			"age":  30,
+			"city": "New York",
+		},
+		"mapWithNils": map[string]any{
+			"name":    "John",
+			"email":   nil,
+			"phone":   nil,
+			"address": "123 Main St",
+		},
+		"emptyMap": map[string]any{},
+		"nilMap":   nil,
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// keys() function with null handling
+		{"keys_null_map", "keys(nil)", []any{}, false}, // keys() on nil should return empty array
+		{"keys_empty_map", "keys(emptyMap)", []any{}, false},
+		{"keys_valid_map", "len(keys(validMap))", 3, false},        // Check length since order may vary
+		{"keys_map_with_nils", "len(keys(mapWithNils))", 4, false}, // Keys with nil values should still be included
+
+		// values() function with null handling
+		{"values_null_map", "values(nil)", []any{}, false}, // values() on nil should return empty array
+		{"values_empty_map", "values(emptyMap)", []any{}, false},
+		{"values_valid_map", "len(values(validMap))", 3, false},        // Check length since order may vary
+		{"values_map_with_nils", "len(values(mapWithNils))", 4, false}, // Values including nils should be included
+
+		// Additional map access with null handling
+		{"get_from_null_map", "get(nil, 'key')", nil, false},
+		{"get_null_key", "get(validMap, nil)", nil, false},
+		{"get_nonexistent_key", "get(validMap, 'nonexistent')", nil, false},
+		{"get_valid_key", "get(validMap, 'name')", "John", false},
+		{"get_nil_value", "get(mapWithNils, 'email')", nil, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinTypeConversionFunctions_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// string() function with null handling
+		{"string_null", "string(nil)", "", false},
+		{"string_number", "string(42)", "42", false},
+		{"string_float", "string(3.14)", "3.14", false},
+		{"string_bool", "string(true)", "true", false},
+		{"string_array", "string([1, 2, 3])", "[1 2 3]", false},
+
+		// toJSON() function with null handling
+		{"toJSON_null", "toJSON(nil)", "null", false},
+		{"toJSON_number", "toJSON(42)", "42", false},
+		{"toJSON_string", "toJSON('hello')", `"hello"`, false},
+		{"toJSON_array", "toJSON([1, 2, 3])", "[1,2,3]", false},
+		{"toJSON_map", "toJSON({name: 'John', age: 30})", `{"age":30,"name":"John"}`, false}, // Note: JSON key order may vary
+
+		// fromJSON() function with null handling - already covered but adding more cases
+		{"fromJSON_null_string", `fromJSON("null")`, nil, false},
+		{"fromJSON_number_string", `fromJSON("42")`, 42.0, false}, // JSON numbers are float64
+		{"fromJSON_string_value", `fromJSON('"hello"')`, "hello", false},
+		{"fromJSON_array_string", `fromJSON("[1,2,3]")`, []any{1.0, 2.0, 3.0}, false},
+		{"fromJSON_object_string", `fromJSON('{"name":"John","age":30}')`, map[string]any{"name": "John", "age": 30.0}, false},
+
+		// toPairs() function with null handling
+		{"toPairs_null_map", "toPairs(nil)", []any{}, false}, // toPairs() on nil should return empty array
+		{"toPairs_empty_map", "toPairs({})", []any{}, false},
+		{"toPairs_valid_map", "len(toPairs({a: 1, b: 2}))", 2, false}, // Check length since order may vary
+		{"toPairs_map_with_nils", "len(toPairs({a: 1, b: nil, c: 3}))", 3, false},
+
+		// fromPairs() function with null handling
+		{"fromPairs_null_array", "fromPairs(nil)", map[string]any{}, false}, // fromPairs() on nil should return empty map
+		{"fromPairs_empty_array", "fromPairs([])", map[string]any{}, false},
+		{"fromPairs_valid_pairs", `fromPairs([["name", "John"], ["age", 30]])`, map[string]any{"name": "John", "age": 30}, false},
+		{"fromPairs_with_nil_values", `fromPairs([["name", "John"], ["email", nil]])`, map[string]any{"name": "John", "email": nil}, false},
+		{"fromPairs_with_nil_pairs", `fromPairs([["name", "John"], nil, ["age", 30]])`, map[string]any{"name": "John", "age": 30}, false}, // Should skip nil pairs
+
+		// Additional type checking with complex null scenarios
+		{"type_of_various_nulls", "type(nil)", "nil", false},
+		{"type_of_null_in_array", "type([nil][0])", "nil", false},
+		{"type_of_null_in_map", "type({a: nil}.a)", "nil", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinBitwiseFunctions_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// bitand() function with null handling
+		{"bitand_null_first", "bitand(nil, 5)", 0, false}, // nil should be treated as 0
+		{"bitand_null_second", "bitand(5, nil)", 0, false},
+		{"bitand_both_null", "bitand(nil, nil)", 0, false},
+		{"bitand_valid", "bitand(12, 10)", 8, false}, // 1100 & 1010 = 1000 = 8
+
+		// bitor() function with null handling
+		{"bitor_null_first", "bitor(nil, 5)", 5, false}, // nil should be treated as 0
+		{"bitor_null_second", "bitor(5, nil)", 5, false},
+		{"bitor_both_null", "bitor(nil, nil)", 0, false},
+		{"bitor_valid", "bitor(12, 10)", 14, false}, // 1100 | 1010 = 1110 = 14
+
+		// bitxor() function with null handling
+		{"bitxor_null_first", "bitxor(nil, 5)", 5, false}, // nil should be treated as 0
+		{"bitxor_null_second", "bitxor(5, nil)", 5, false},
+		{"bitxor_both_null", "bitxor(nil, nil)", 0, false},
+		{"bitxor_valid", "bitxor(12, 10)", 6, false}, // 1100 ^ 1010 = 0110 = 6
+
+		// bitnand() function with null handling
+		{"bitnand_null_first", "bitnand(nil, 5)", -1, false},  // ~(nil & 5) = ~0 = -1
+		{"bitnand_null_second", "bitnand(5, nil)", -1, false}, // ~(5 & nil) = ~0 = -1
+		{"bitnand_both_null", "bitnand(nil, nil)", -1, false}, // ~(nil & nil) = ~0 = -1
+		{"bitnand_valid", "bitnand(12, 10)", -9, false},       // ~(1100 & 1010) = ~1000 = -9
+
+		// bitnot() function with null handling
+		{"bitnot_null", "bitnot(nil)", -1, false}, // ~nil = ~0 = -1
+		{"bitnot_valid", "bitnot(5)", -6, false},  // ~5 = -6
+
+		// bitshl() function with null handling
+		{"bitshl_null_first", "bitshl(nil, 2)", 0, false},  // nil << 2 = 0 << 2 = 0
+		{"bitshl_null_second", "bitshl(5, nil)", 5, false}, // 5 << nil = 5 << 0 = 5
+		{"bitshl_both_null", "bitshl(nil, nil)", 0, false}, // nil << nil = 0 << 0 = 0
+		{"bitshl_valid", "bitshl(5, 2)", 20, false},        // 5 << 2 = 20
+
+		// bitshr() function with null handling
+		{"bitshr_null_first", "bitshr(nil, 2)", 0, false},    // nil >> 2 = 0 >> 2 = 0
+		{"bitshr_null_second", "bitshr(20, nil)", 20, false}, // 20 >> nil = 20 >> 0 = 20
+		{"bitshr_both_null", "bitshr(nil, nil)", 0, false},   // nil >> nil = 0 >> 0 = 0
+		{"bitshr_valid", "bitshr(20, 2)", 5, false},          // 20 >> 2 = 5
+
+		// bitushr() function with null handling
+		{"bitushr_null_first", "bitushr(nil, 2)", 0, false},                 // nil >>> 2 = 0 >>> 2 = 0
+		{"bitushr_null_second", "bitushr(20, nil)", 20, false},              // 20 >>> nil = 20 >>> 0 = 20
+		{"bitushr_both_null", "bitushr(nil, nil)", 0, false},                // nil >>> nil = 0 >>> 0 = 0
+		{"bitushr_valid", "bitushr(20, 2)", 5, false},                       // 20 >>> 2 = 5
+		{"bitushr_negative", "bitushr(-20, 2)", 4611686018427387899, false}, // Unsigned right shift of negative number
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinDateFunctions_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// date() function with null handling
+		{"date_null_string", "date(nil)", nil, false},                                // date() with nil should return nil
+		{"date_null_format", "date('2023-01-01', nil)", true, false},                 // Should parse with default format, check if it's a valid date
+		{"date_null_timezone", "date('2023-01-01', '2006-01-02', nil)", true, false}, // Should use default timezone
+		{"date_all_null", "date(nil, nil, nil)", nil, false},
+
+		// duration() function with null handling - already covered but adding verification
+		{"duration_null", "duration(nil) == duration('0s')", true, false},
+
+		// timezone() function with null handling
+		{"timezone_null", "timezone(nil)", nil, false}, // timezone() with nil should return nil
+
+		// Complex date operations with null handling
+		{"date_comparison_with_null", "date('2023-01-01') > nil", false, false}, // Comparison with nil should be false
+		{"null_date_comparison", "nil < date('2023-01-01')", false, false},
+		{"date_arithmetic_with_null", "date('2023-01-01') + nil", nil, false}, // Adding nil duration should return nil
+		{"null_plus_duration", "nil + duration('1h')", nil, false},
+
+		// Date method calls on null
+		{"null_date_year", "nil?.Year()", nil, false}, // Optional chaining should handle null
+		{"null_date_format", "nil?.Format('2006-01-02')", nil, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else {
+					// For boolean expectations, check directly
+					if want, ok := tc.want.(bool); ok {
+						isValid := false
+						if result == nil && !want {
+							// nil is considered false in boolean context
+							isValid = true
+						} else if resultBool, ok := result.(bool); ok && resultBool == want {
+							isValid = true
+						} else if want && result != nil {
+							// For date parsing, just check if result is not nil (successful parsing)
+							isValid = true
+						}
+						if !isValid && !deepEqual(result, tc.want) {
+							t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+						}
+					} else if !deepEqual(result, tc.want) {
+						t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinNumberFunctions_TwoParam_NullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// max(a, b) function with null handling
+		{"max_null_first", "max(nil, 5)", 5, false},    // max(nil, 5) should return 5
+		{"max_null_second", "max(5, nil)", 5, false},   // max(5, nil) should return 5
+		{"max_both_null", "max(nil, nil)", nil, false}, // max(nil, nil) should return nil
+		{"max_valid_numbers", "max(3, 7)", 7, false},
+		{"max_equal_numbers", "max(5, 5)", 5, false},
+		{"max_negative_numbers", "max(-3, -7)", -3, false},
+		{"max_mixed_types", "max(3, 5.7)", 5.7, false},
+
+		// min(a, b) function with null handling
+		{"min_null_first", "min(nil, 5)", 5, false},    // min(nil, 5) should return 5
+		{"min_null_second", "min(5, nil)", 5, false},   // min(5, nil) should return 5
+		{"min_both_null", "min(nil, nil)", nil, false}, // min(nil, nil) should return nil
+		{"min_valid_numbers", "min(3, 7)", 3, false},
+		{"min_equal_numbers", "min(5, 5)", 5, false},
+		{"min_negative_numbers", "min(-3, -7)", -7, false},
+		{"min_mixed_types", "min(3, 2.5)", 2.5, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinMiscellaneousFunctions_NullHandling(t *testing.T) {
+	env := map[string]any{
+		"array":    []any{1, 2, 3, 4, 5},
+		"nilArray": nil,
+		"map": map[string]any{
+			"name": "John",
+			"age":  30,
+		},
+		"nilMap": nil,
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// get() function with null handling - already partially covered but adding more cases
+		{"get_null_collection", "get(nil, 0)", nil, false},
+		{"get_null_index", "get(array, nil)", nil, false},
+		{"get_both_null", "get(nil, nil)", nil, false},
+		{"get_array_valid_index", "get(array, 2)", 3, false},
+		{"get_array_out_of_bounds", "get(array, 10)", nil, false},
+		{"get_array_negative_index", "get(array, -1)", 5, false}, // Should support negative indexing
+		{"get_map_valid_key", "get(map, 'name')", "John", false},
+		{"get_map_invalid_key", "get(map, 'nonexistent')", nil, false},
+		{"get_string_index", `get("hello", 1)`, "e", false},
+		{"get_string_out_of_bounds", `get("hello", 10)`, nil, false},
+		{"get_string_null_index", `get("hello", nil)`, nil, false},
+
+		// Additional len() cases with null handling - already covered but ensuring completeness
+		{"len_various_nulls", "len(nil)", 0, false},
+		{"len_null_vs_empty_array", "len([]) == len(nil)", true, false},
+		{"len_null_vs_empty_map", "len({}) == len(nil)", true, false},
+		{"len_null_vs_empty_string", `len("") == len(nil)`, true, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinAdditionalNullHandling(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Additional edge cases for string functions that might not be fully covered
+		{"contains_null_string", "contains(nil, 'test')", false, false},
+		{"contains_null_substring", "contains('hello world', nil)", true, false}, // nil substring should match (empty string behavior)
+		{"contains_both_null", "contains(nil, nil)", true, false},
+
+		{"startsWith_null_string", "startsWith(nil, 'test')", false, false},
+		{"startsWith_null_prefix", "startsWith('hello world', nil)", true, false}, // nil prefix should match (empty string behavior)
+		{"startsWith_both_null", "startsWith(nil, nil)", true, false},
+
+		{"endsWith_null_string", "endsWith(nil, 'test')", false, false},
+		{"endsWith_null_suffix", "endsWith('hello world', nil)", true, false}, // nil suffix should match (empty string behavior)
+		{"endsWith_both_null", "endsWith(nil, nil)", true, false},
+
+		{"matches_null_string", "matches(nil, 'test')", false, false},
+		{"matches_null_pattern", "matches('hello world', nil)", false, false},
+		{"matches_both_null", "matches(nil, nil)", false, false},
+
+		// Additional array function edge cases
+		{"sum_null_array", "sum(nil)", 0, false},
+		{"sum_null_array_with_predicate", "sum(nil, .value)", 0, false},
+		{"mean_null_array", "mean(nil)", nil, false},     // mean of null should be nil
+		{"median_null_array", "median(nil)", nil, false}, // median of null should be nil
+		{"count_null_array_no_predicate", "count(nil)", 0, false},
+		{"count_null_array_with_predicate", "count(nil, # > 0)", 0, false},
+
+		// Type function with various null scenarios
+		{"type_different_nulls", "type(nil) == 'nil'", true, false},
+
+		// String conversion with null handling
+		{"string_null", "string(nil)", "", false}, // string(nil) should return empty string
+
+		// Additional complex null coalescing scenarios
+		{"nested_null_coalescing", "nil ?? (nil ?? 'default')", "default", false},
+		{"complex_null_arithmetic", "(nil + 5) * (nil ?? 2)", 10, false}, // (0 + 5) * 2 = 10
+		{"null_in_complex_expression", "len(nil ?? []) + (nil ?? 0)", 0, false},
+
+		// Optional chaining with various null scenarios
+		{"optional_chaining_deep_null", "nil?.a?.b?.c", nil, false},
+		{"optional_chaining_with_array", "nil?.[0]", nil, false},
+		{"optional_chaining_method_call", "nil?.toString()", nil, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinStringFunctionAdditionalNullCases(t *testing.T) {
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Additional trim variations with null
+		{"trim_null_with_empty_cutset", "trim(nil, '')", nil, false},
+		{"trim_empty_with_null_cutset", "trim('', nil)", "", false},
+
+		// Replace with null handling - more edge cases
+		{"replace_empty_to_null", "replace('hello', 'hello', nil)", "", false}, // Replace with nil should result in empty
+		{"replace_multiple_nulls", "replace(nil, nil, nil)", nil, false},
+
+		// Split with edge cases
+		{"split_with_empty_string_and_null", "split('', nil)", []any{""}, false},
+		{"split_null_with_empty_separator", "split(nil, '')", []any{}, false},
+
+		// Additional index functions
+		{"indexOf_empty_in_null", "indexOf(nil, '')", -1, false},
+		{"lastIndexOf_empty_in_null", "lastIndexOf(nil, '')", -1, false},
+
+		// Repeat with null
+		{"repeat_null_zero_times", "repeat(nil, 0)", "", false},
+		{"repeat_null_positive_times", "repeat(nil, 3)", "", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, nil)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinArrayFunctionAdditionalNullCases(t *testing.T) {
+	env := map[string]any{
+		"arrayWithSomeNils": []any{1, nil, 3, nil, 5},
+		"arrayAllNils":      []any{nil, nil, nil},
+		"emptyArray":        []any{},
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Additional array functions edge cases
+		{"take_null_from_array", "take(arrayWithSomeNils, nil)", []any{}, false}, // take with nil count should return empty
+		{"take_zero_from_null", "take(nil, 0)", []any{}, false},
+		{"take_negative_from_array", "take(arrayWithSomeNils, -1)", []any{}, false}, // Negative take should return empty
+
+		// Concat with various null combinations
+		{"concat_multiple_nulls", "concat(nil, nil, nil, nil)", []any{}, false},
+		{"concat_mixed_nulls_and_arrays", "concat([1], nil, [2], nil, [3])", []any{1, 2, 3}, false},
+
+		// Sort with null elements
+		{"sort_mixed_nulls_and_numbers", "sort([3, nil, 1, nil, 2])", []any{nil, nil, 1, 2, 3}, false},
+		{"sort_all_nulls", "sort(arrayAllNils)", []any{nil, nil, nil}, false},
+
+		// Uniq with null elements
+		{"uniq_multiple_nulls", "uniq([nil, 1, nil, 2, nil])", []any{nil, 1, 2}, false},
+		{"uniq_only_nulls", "uniq([nil, nil, nil])", []any{nil}, false},
+
+		// GroupBy with null keys
+		{"groupBy_null_keys", "groupBy([1, nil, 2, nil, 3], #)", map[any][]any{1: []any{1}, nil: []any{nil, nil}, 2: []any{2}, 3: []any{3}}, false},
+
+		// FindIndex variations
+		{"findIndex_null_in_mixed", "findIndex([1, nil, 3], # == nil)", 1, false},
+		{"findLastIndex_null_in_mixed", "findLastIndex([nil, 2, nil, 4], # == nil)", 2, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestBuiltinMapFunctionAdditionalNullCases(t *testing.T) {
+	env := map[string]any{
+		"mapWithNullValues": map[string]any{
+			"a": 1,
+			"b": nil,
+			"c": 3,
+			"d": nil,
+		},
+		"mapWithNullKeys": map[any]any{
+			"valid": 1,
+			nil:     2,
+			"other": 3,
+		},
+		"emptyMap": map[string]any{},
+	}
+
+	testCases := []struct {
+		name       string
+		expression string
+		want       any
+		wantError  bool
+	}{
+		// Keys function with null values in map
+		{"keys_map_with_null_values", "keys(mapWithNullValues)", []any{"a", "b", "c", "d"}, false}, // Should return all keys even if values are nil
+		{"keys_null_map", "keys(nil)", []any{}, false},                                             // keys() on nil should return empty array
+		{"keys_empty_map", "keys(emptyMap)", []any{}, false},
+
+		// Values function with null values
+		{"values_map_with_null_values", "values(mapWithNullValues)", []any{1, nil, 3, nil}, false}, // Should include nil values
+		{"values_null_map", "values(nil)", []any{}, false},                                         // values() on nil should return empty array
+		{"values_empty_map", "values(emptyMap)", []any{}, false},
+
+		// Map access with null keys
+		{"access_null_key", "mapWithNullKeys[nil]", 2, false}, // Should be able to access nil key
+		{"access_null_key_with_get", "get(mapWithNullKeys, nil)", 2, false},
+
+		// toPairs and fromPairs with null handling
+		{"toPairs_null_map", "toPairs(nil)", []any{}, false},                      // toPairs on nil should return empty array
+		{"toPairs_with_null_values", "len(toPairs(mapWithNullValues))", 4, false}, // Should include pairs with nil values
+		{"fromPairs_null_array", "fromPairs(nil)", map[any]any{}, false},          // fromPairs on nil should return empty map
+		{"fromPairs_with_null_pairs", "fromPairs([['a', 1], ['b', nil], [nil, 3]])", map[any]any{"a": 1, "b": nil, nil: 3}, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expr.Eval(tc.expression, env)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error for %q, got result %v", tc.expression, result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error for %q: %v", tc.expression, err)
+				} else if !deepEqual(result, tc.want) {
+					t.Errorf("%q: got %v (type %T), want %v (type %T)", tc.expression, result, result, tc.want, tc.want)
+				}
+			}
+		})
+	}
+}

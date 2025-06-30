@@ -558,11 +558,18 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 
 		case OpBegin:
 			a := vm.pop()
-			array := reflect.ValueOf(a)
-			vm.Scopes = append(vm.Scopes, &Scope{
-				Array: array,
-				Len:   array.Len(),
-			})
+			if a == nil {
+				vm.Scopes = append(vm.Scopes, &Scope{
+					Array: reflect.ValueOf([]any{}),
+					Len:   0,
+				})
+			} else {
+				array := reflect.ValueOf(a)
+				vm.Scopes = append(vm.Scopes, &Scope{
+					Array: array,
+					Len:   array.Len(),
+				})
+			}
 
 		case OpEnd:
 			vm.Scopes = vm.Scopes[:len(vm.Scopes)-1]

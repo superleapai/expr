@@ -43,6 +43,10 @@ func types(types ...any) []reflect.Type {
 }
 
 func toInt(val any) (int, error) {
+	// Handle nil values
+	if val == nil {
+		return 0, nil
+	}
 	switch v := val.(type) {
 	case int:
 		return v, nil

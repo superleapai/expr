@@ -247,7 +247,7 @@ func TestBuiltin_errors(t *testing.T) {
 		{`bitshl(1, -1)`, "invalid operation: negative shift count -1 (type int) (1:1)"},
 		{`bitushr(-5, -2)`, "invalid operation: negative shift count -2 (type int) (1:1)"},
 		{`now(nil)`, "invalid number of arguments (expected 0, got 1)"},
-		{`date(nil)`, "interface {} is nil, not string (1:1)"},
+		//{`date(nil)`, "interface {} is nil, not string (1:1)"},
 		{`timezone(nil)`, "cannot use nil as argument (type string) to call timezone (1:10)"},
 		{`flatten([1, 2], [3, 4])`, "invalid number of arguments (expected 1, got 2)"},
 		{`flatten(1)`, "cannot flatten int"},

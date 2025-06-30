@@ -271,6 +271,9 @@ func Float(x any) any {
 }
 
 func String(arg any) any {
+	if arg == nil {
+		return ""
+	}
 	return fmt.Sprintf("%v", arg)
 }
 

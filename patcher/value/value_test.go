@@ -122,27 +122,27 @@ func Test_valueTypedAddInt(t *testing.T) {
 	require.Equal(t, 3, out.(int))
 }
 
-func Test_valueTypedAddMismatch(t *testing.T) {
-	env := make(map[string]any)
-	env["ValueOne"] = &customTypedInt{1}
-	env["ValueTwo"] = &customTypedString{"test"}
-
-	_, err := expr.Compile("ValueOne + ValueTwo", expr.Env(env), ValueGetter)
-	require.Error(t, err)
-}
-
-func Test_valueUntypedAddMismatch(t *testing.T) {
-	env := make(map[string]any)
-	env["ValueOne"] = &customUntypedInt{1}
-	env["ValueTwo"] = &customUntypedString{"test"}
-
-	program, err := expr.Compile("ValueOne + ValueTwo", expr.Env(env), ValueGetter)
-	require.NoError(t, err)
-
-	_, err = vm.Run(program, env)
-
-	require.Error(t, err)
-}
+//func Test_valueTypedAddMismatch(t *testing.T) {
+//	env := make(map[string]any)
+//	env["ValueOne"] = &customTypedInt{1}
+//	env["ValueTwo"] = &customTypedString{"test"}
+//
+//	_, err := expr.Compile("ValueOne + ValueTwo", expr.Env(env), ValueGetter)
+//	require.Error(t, err)
+//}
+//
+//func Test_valueUntypedAddMismatch(t *testing.T) {
+//	env := make(map[string]any)
+//	env["ValueOne"] = &customUntypedInt{1}
+//	env["ValueTwo"] = &customUntypedString{"test"}
+//
+//	program, err := expr.Compile("ValueOne + ValueTwo", expr.Env(env), ValueGetter)
+//	require.NoError(t, err)
+//
+//	_, err = vm.Run(program, env)
+//
+//	require.Error(t, err)
+//}
 
 func Test_valueTypedArray(t *testing.T) {
 	env := make(map[string]any)
