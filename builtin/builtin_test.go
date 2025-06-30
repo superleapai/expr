@@ -670,6 +670,7 @@ func TestBuiltin_with_deref(t *testing.T) {
 	m := map[string]any{"a": 1, "b": 2}
 	jsonString := `["1"]`
 	str := "1,2,3"
+	jstr := "{\"a\":1}"
 	env := map[string]any{
 		"x":      &x,
 		"arr":    &arr,
@@ -677,6 +678,7 @@ func TestBuiltin_with_deref(t *testing.T) {
 		"m":      &m,
 		"json":   &jsonString,
 		"str":    &str,
+		"jstr":   &jstr,
 	}
 
 	tests := []struct {
@@ -720,6 +722,7 @@ func TestBuiltin_with_deref(t *testing.T) {
 		{`flatten(arr)`, []any{1, 2, 3}},
 		{`toJSON(arr)`, "[1,2,3]"},
 		{`fromJSON(json)`, []any{"1"}},
+		{`fromJSON(jstr).a`, float64(1)},
 		{`split(str, ",")`, []string{"1", "2", "3"}},
 		{`join(arrStr, ",")`, "1,2,3"},
 	}
