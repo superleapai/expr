@@ -56,6 +56,59 @@ func ToFloat64Safe(a any) (float64, bool) {
 	}
 }
 
+func ToIntSafe(a any) (int, bool) {
+	if IsNil(a) {
+		return 0, true
+	}
+	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1, true
+		}
+		return 0, true
+	case string:
+		if x == "" {
+			return 0, true // empty string converts to 0
+		}
+		if i, err := strconv.Atoi(x); err == nil {
+			return i, true
+		}
+		return 0, false
+	case float32:
+		if math.IsNaN(float64(x)) || math.IsInf(float64(x), 0) {
+			return 0, false
+		}
+		return int(x), true
+	case float64:
+		if math.IsNaN(x) || math.IsInf(x, 0) {
+			return 0, false
+		}
+		return int(x), true
+	case int:
+		return x, true
+	case int8:
+		return int(x), true
+	case int16:
+		return int(x), true
+	case int32:
+		return int(x), true
+	case int64:
+		return int(x), true
+	case uint:
+		return int(x), true
+	case uint8:
+		return int(x), true
+	case uint16:
+		return int(x), true
+	case uint32:
+		return int(x), true
+	case uint64:
+		return int(x), true
+	default:
+		return 0, false
+	}
+}
+
 func Equal(a, b interface{}) bool {
 	// Handle nil values first - nil only equals nil
 	if IsNil(a) && IsNil(b) {
@@ -853,7 +906,12 @@ func Equal(a, b interface{}) bool {
 				return x == false
 			}
 			// Try to convert string to number
-			return ToInt(x) == ToInt(y)
+			xInt, xOk := ToIntSafe(x)
+			yInt, yOk := ToIntSafe(y)
+			if xOk && yOk {
+				return xInt == yInt
+			}
+			return false
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 			// JavaScript-like coercion: true == 1, false == 0
 			return ToInt(x) == ToInt(y)
@@ -4473,7 +4531,7 @@ func Divide(a, b interface{}) float64 {
 	// Check for division by zero after type conversion
 	bVal := ToFloat64(b)
 	if bVal == 0.0 {
-		panic("integer divide by zero")
+		return math.Inf(0)
 	}
 
 	// Return the division result
@@ -4514,7 +4572,7 @@ func Modulo(a, b interface{}) interface{} {
 	// Check for modulo by zero after type conversion
 	bVal := ToFloat64(b)
 	if bVal == 0.0 {
-		panic("integer divide by zero")
+		return math.Inf(0)
 	}
 
 	// For integer operations, return integer result

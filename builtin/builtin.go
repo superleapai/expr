@@ -733,7 +733,7 @@ var Builtins = []*Function{
 	{
 		Name: "toJSON",
 		Func: func(args ...any) (any, error) {
-			b, err := json.MarshalIndent(args[0], "", "  ")
+			b, err := json.Marshal(args[0])
 			if err != nil {
 				return nil, err
 			}
