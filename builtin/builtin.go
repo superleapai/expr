@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,11 @@ func init() {
 		Index[fn.Name] = i
 		Names[i] = fn.Name
 	}
+}
+
+func removeTrailingCommas(jsonString string) string {
+	re := regexp.MustCompile(`,([\s\n\r]*[\]}])`)
+	return re.ReplaceAllString(jsonString, "$1")
 }
 
 var Builtins = []*Function{
@@ -753,8 +759,11 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid argument for fromJSON: first argument must be a string")
 			}
 
+			// Remove trailing commas before parsing
+			cleanedStr := removeTrailingCommas(inputStr)
+
 			var v any
-			err := json.Unmarshal([]byte(inputStr), &v)
+			err := json.Unmarshal([]byte(cleanedStr), &v)
 			if err != nil {
 				return nil, err
 			}
