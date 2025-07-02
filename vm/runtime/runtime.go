@@ -175,6 +175,9 @@ func Slice(array, from, to any) any {
 		}
 
 	}
+	if array == nil {
+		return nil
+	}
 	panic(fmt.Sprintf("cannot slice %v", from))
 }
 

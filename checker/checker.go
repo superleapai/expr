@@ -715,6 +715,9 @@ func (v *checker) MemberNode(node *ast.MemberNode) Nature {
 func (v *checker) SliceNode(node *ast.SliceNode) Nature {
 	nt := v.visit(node.Node)
 
+	if isNil(nt) {
+		return nilNature
+	}
 	if isUnknown(nt) {
 		return unknown
 	}

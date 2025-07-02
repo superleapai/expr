@@ -26,12 +26,14 @@ func TestBuiltin(t *testing.T) {
 		"ArrayOfAny":      []any{1, "2", true},
 		"ArrayOfFoo":      []mock.Foo{{Value: "a"}, {Value: "b"}, {Value: "c"}},
 		"PtrArrayWithNil": &ArrayWithNil,
+		"null":            nil,
 	}
 
 	var tests = []struct {
 		input string
 		want  any
 	}{
+		{`null[-10:]`, nil},
 		{`len(1..10)`, 10},
 		{`len({foo: 1, bar: 2})`, 2},
 		{`len("hello")`, 5},
