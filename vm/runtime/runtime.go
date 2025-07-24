@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 
 	"github.com/expr-lang/expr/internal/deref"
 )
@@ -174,6 +175,9 @@ func Slice(array, from, to any) any {
 		}
 
 	}
+	if array == nil {
+		return nil
+	}
 	panic(fmt.Sprintf("cannot slice %v", from))
 }
 
@@ -189,7 +193,7 @@ func In(needle any, array any) bool {
 		for i := 0; i < v.Len(); i++ {
 			value := v.Index(i)
 			if value.IsValid() {
-				if Equal(value.Interface(), needle) {
+				if EqualIn(needle, value.Interface()) {
 					return true
 				}
 			}
@@ -231,6 +235,9 @@ func In(needle any, array any) bool {
 }
 
 func Len(a any) int {
+	if IsNil(a) {
+		return 0
+	}
 	v := reflect.ValueOf(a)
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
@@ -241,6 +248,9 @@ func Len(a any) int {
 }
 
 func Negate(i any) any {
+	if IsNil(i) {
+		return true
+	}
 	switch v := i.(type) {
 	case float32:
 		return -v
@@ -272,7 +282,36 @@ func Negate(i any) any {
 }
 
 func Exponent(a, b any) float64 {
-	return math.Pow(ToFloat64(a), ToFloat64(b))
+	if IsNil(a) {
+		a = 0
+	}
+	if IsNil(b) {
+		b = 0
+	}
+
+	// Handle cross-type operations - check for non-numeric strings
+	switch x := a.(type) {
+	case string:
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: string(%q) ** %T", x, b))
+		}
+	}
+	switch x := b.(type) {
+	case string:
+		if _, ok := ToFloat64Safe(x); !ok {
+			panic(fmt.Sprintf("invalid operation: %T ** string(%q)", a, x))
+		}
+	}
+
+	aVal := ToFloat64(a)
+	bVal := ToFloat64(b)
+
+	// Handle special case: 0 ** 0 = 1 (mathematical convention)
+	if aVal == 0 && bVal == 0 {
+		return 1
+	}
+
+	return math.Pow(aVal, bVal)
 }
 
 func MakeRange(min, max int) []int {
@@ -288,7 +327,26 @@ func MakeRange(min, max int) []int {
 }
 
 func ToInt(a any) int {
+	if IsNil(a) {
+		return 0
+	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if x == "" {
+			return 0 // empty string converts to 0
+		}
+		if i, err := strconv.Atoi(x); err == nil {
+			return i
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return int(f)
+		}
+		panic(fmt.Sprintf("invalid operation: int(%q)", x))
 	case float32:
 		return int(x)
 	case float64:
@@ -319,7 +377,26 @@ func ToInt(a any) int {
 }
 
 func ToInt64(a any) int64 {
+	if IsNil(a) {
+		return 0
+	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if x == "" {
+			return 0 // empty string converts to 0
+		}
+		if i, err := strconv.ParseInt(x, 10, 64); err == nil {
+			return i
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return int64(f)
+		}
+		panic(fmt.Sprintf("invalid operation: int64(%q)", x))
 	case float32:
 		return int64(x)
 	case float64:
@@ -350,7 +427,23 @@ func ToInt64(a any) int64 {
 }
 
 func ToFloat64(a any) float64 {
+	if IsNil(a) {
+		return 0
+	}
 	switch x := a.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		if x == "" {
+			return 0.0 // empty string converts to 0.0
+		}
+		if f, err := strconv.ParseFloat(x, 64); err == nil {
+			return f
+		}
+		panic(fmt.Sprintf("invalid operation: float(%q)", x))
 	case float32:
 		return float64(x)
 	case float64:

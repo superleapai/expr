@@ -155,7 +155,11 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 			vm.push(v)
 
 		case OpNot:
-			v := vm.pop().(bool)
+			x := vm.pop()
+			if x == nil {
+				x = false
+			}
+			v := x.(bool)
 			vm.push(!v)
 
 		case OpEqual:
@@ -177,12 +181,14 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 			vm.ip += arg
 
 		case OpJumpIfTrue:
-			if vm.current().(bool) {
+			x := vm.current()
+			if runtime.IsTruthy(x) {
 				vm.ip += arg
 			}
 
 		case OpJumpIfFalse:
-			if !vm.current().(bool) {
+			x := vm.current()
+			if !runtime.IsTruthy(x) {
 				vm.ip += arg
 			}
 
@@ -552,11 +558,18 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 
 		case OpBegin:
 			a := vm.pop()
-			array := reflect.ValueOf(a)
-			vm.Scopes = append(vm.Scopes, &Scope{
-				Array: array,
-				Len:   array.Len(),
-			})
+			if a == nil {
+				vm.Scopes = append(vm.Scopes, &Scope{
+					Array: reflect.ValueOf([]any{}),
+					Len:   0,
+				})
+			} else {
+				array := reflect.ValueOf(a)
+				vm.Scopes = append(vm.Scopes, &Scope{
+					Array: array,
+					Len:   array.Len(),
+				})
+			}
 
 		case OpEnd:
 			vm.Scopes = vm.Scopes[:len(vm.Scopes)-1]

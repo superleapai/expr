@@ -967,7 +967,7 @@ func (c *compiler) BuiltinNode(node *ast.BuiltinNode) {
 			c.patchJump(noop)
 			c.emit(OpPop)
 		})
-		c.emit(OpNil)
+		c.emit(OpInt, -1)
 		c.patchJump(loopBreak)
 		c.emit(OpEnd)
 		return
@@ -1014,7 +1014,7 @@ func (c *compiler) BuiltinNode(node *ast.BuiltinNode) {
 			c.patchJump(noop)
 			c.emit(OpPop)
 		})
-		c.emit(OpNil)
+		c.emit(OpInt, -1)
 		c.patchJump(loopBreak)
 		c.emit(OpEnd)
 		return

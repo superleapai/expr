@@ -3,6 +3,7 @@ package builtin
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/expr-lang/expr/internal/deref"
@@ -42,6 +43,10 @@ func types(types ...any) []reflect.Type {
 }
 
 func toInt(val any) (int, error) {
+	// Handle nil values
+	if val == nil {
+		return 0, nil
+	}
 	switch v := val.(type) {
 	case int:
 		return v, nil
@@ -63,6 +68,20 @@ func toInt(val any) (int, error) {
 		return int(v), nil
 	case uint64:
 		return int(v), nil
+	case float32:
+		return int(v), nil
+	case float64:
+		return int(v), nil
+	case string:
+		// Try to parse as int first
+		if i, err := strconv.Atoi(v); err == nil {
+			return i, nil
+		}
+		// Try to parse as float then convert to int
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return int(f), nil
+		}
+		return 0, fmt.Errorf("cannot convert string '%s' to int", v)
 	default:
 		return 0, fmt.Errorf("cannot use %T as argument (type int)", val)
 	}

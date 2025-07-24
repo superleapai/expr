@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -25,6 +27,11 @@ func init() {
 		Index[fn.Name] = i
 		Names[i] = fn.Name
 	}
+}
+
+func removeTrailingCommas(jsonString string) string {
+	re := regexp.MustCompile(`,([\s\n\r]*[\]}])`)
+	return re.ReplaceAllString(jsonString, "$1")
 }
 
 var Builtins = []*Function{
@@ -202,9 +209,34 @@ var Builtins = []*Function{
 		Name: "trim",
 		Func: func(args ...any) (any, error) {
 			if len(args) == 1 {
-				return strings.TrimSpace(args[0].(string)), nil
+				// Handle null input string
+				if args[0] == nil {
+					return nil, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for trim: first argument must be a string")
+				}
+				return strings.TrimSpace(inputStr), nil
 			} else if len(args) == 2 {
-				return strings.Trim(args[0].(string), args[1].(string)), nil
+				// Handle null input string
+				if args[0] == nil {
+					return nil, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for trim: first argument must be a string")
+				}
+
+				// Handle null cutset - return original string
+				if args[1] == nil {
+					return inputStr, nil
+				}
+				cutsetStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for trim: second argument must be a string")
+				}
+				return strings.Trim(inputStr, cutsetStr), nil
 			} else {
 				return nil, fmt.Errorf("invalid number of arguments for trim (expected 1 or 2, got %d)", len(args))
 			}
@@ -217,11 +249,28 @@ var Builtins = []*Function{
 	{
 		Name: "trimPrefix",
 		Func: func(args ...any) (any, error) {
+			// Handle null input string
+			if args[0] == nil {
+				return nil, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for trimPrefix: first argument must be a string")
+			}
+
 			s := " "
 			if len(args) == 2 {
-				s = args[1].(string)
+				if args[1] == nil {
+					s = ""
+				} else {
+					var ok bool
+					s, ok = args[1].(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid argument for trimPrefix: second argument must be a string")
+					}
+				}
 			}
-			return strings.TrimPrefix(args[0].(string), s), nil
+			return strings.TrimPrefix(inputStr, s), nil
 		},
 		Types: types(
 			strings.TrimPrefix,
@@ -231,11 +280,28 @@ var Builtins = []*Function{
 	{
 		Name: "trimSuffix",
 		Func: func(args ...any) (any, error) {
+			// Handle null input string
+			if args[0] == nil {
+				return nil, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for trimSuffix: first argument must be a string")
+			}
+
 			s := " "
 			if len(args) == 2 {
-				s = args[1].(string)
+				if args[1] == nil {
+					s = ""
+				} else {
+					var ok bool
+					s, ok = args[1].(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid argument for trimSuffix: second argument must be a string")
+					}
+				}
 			}
-			return strings.TrimSuffix(args[0].(string), s), nil
+			return strings.TrimSuffix(inputStr, s), nil
 		},
 		Types: types(
 			strings.TrimSuffix,
@@ -245,14 +311,28 @@ var Builtins = []*Function{
 	{
 		Name: "upper",
 		Fast: func(arg any) any {
-			return strings.ToUpper(arg.(string))
+			if arg == nil {
+				return nil
+			}
+			inputStr, ok := arg.(string)
+			if !ok {
+				panic(fmt.Sprintf("invalid argument for upper: expected string, got %T", arg))
+			}
+			return strings.ToUpper(inputStr)
 		},
 		Types: types(strings.ToUpper),
 	},
 	{
 		Name: "lower",
 		Fast: func(arg any) any {
-			return strings.ToLower(arg.(string))
+			if arg == nil {
+				return nil
+			}
+			inputStr, ok := arg.(string)
+			if !ok {
+				panic(fmt.Sprintf("invalid argument for lower: expected string, got %T", arg))
+			}
+			return strings.ToLower(inputStr)
 		},
 		Types: types(strings.ToLower),
 	},
@@ -260,9 +340,43 @@ var Builtins = []*Function{
 		Name: "split",
 		Func: func(args ...any) (any, error) {
 			if len(args) == 2 {
-				return strings.Split(args[0].(string), args[1].(string)), nil
+				// Handle null input string
+				if args[0] == nil {
+					return []string{""}, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for split: first argument must be a string")
+				}
+
+				// Handle null separator - return single element array
+				if args[1] == nil {
+					return []string{inputStr}, nil
+				}
+				sepStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for split: second argument must be a string")
+				}
+				return strings.Split(inputStr, sepStr), nil
 			} else if len(args) == 3 {
-				return strings.SplitN(args[0].(string), args[1].(string), runtime.ToInt(args[2])), nil
+				// Handle null input string
+				if args[0] == nil {
+					return []string{""}, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for split: first argument must be a string")
+				}
+
+				// Handle null separator - return single element array
+				if args[1] == nil {
+					return []string{inputStr}, nil
+				}
+				sepStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for split: second argument must be a string")
+				}
+				return strings.SplitN(inputStr, sepStr, runtime.ToInt(args[2])), nil
 			} else {
 				return nil, fmt.Errorf("invalid number of arguments for split (expected 2 or 3, got %d)", len(args))
 			}
@@ -276,9 +390,43 @@ var Builtins = []*Function{
 		Name: "splitAfter",
 		Func: func(args ...any) (any, error) {
 			if len(args) == 2 {
-				return strings.SplitAfter(args[0].(string), args[1].(string)), nil
+				// Handle null input string
+				if args[0] == nil {
+					return []string{""}, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for splitAfter: first argument must be a string")
+				}
+
+				// Handle null separator - return single element array
+				if args[1] == nil {
+					return []string{inputStr}, nil
+				}
+				sepStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for splitAfter: second argument must be a string")
+				}
+				return strings.SplitAfter(inputStr, sepStr), nil
 			} else if len(args) == 3 {
-				return strings.SplitAfterN(args[0].(string), args[1].(string), runtime.ToInt(args[2])), nil
+				// Handle null input string
+				if args[0] == nil {
+					return []string{""}, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for splitAfter: first argument must be a string")
+				}
+
+				// Handle null separator - return single element array
+				if args[1] == nil {
+					return []string{inputStr}, nil
+				}
+				sepStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for splitAfter: second argument must be a string")
+				}
+				return strings.SplitAfterN(inputStr, sepStr, runtime.ToInt(args[2])), nil
 			} else {
 				return nil, fmt.Errorf("invalid number of arguments for splitAfter (expected 2 or 3, got %d)", len(args))
 			}
@@ -292,9 +440,69 @@ var Builtins = []*Function{
 		Name: "replace",
 		Func: func(args ...any) (any, error) {
 			if len(args) == 4 {
-				return strings.Replace(args[0].(string), args[1].(string), args[2].(string), runtime.ToInt(args[3])), nil
+				// Handle null input string
+				if args[0] == nil {
+					return nil, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for replace: first argument must be a string")
+				}
+
+				// Handle null search string - return original if search is null
+				if args[1] == nil {
+					return inputStr, nil
+				}
+				searchStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for replace: second argument must be a string")
+				}
+
+				// Handle null replacement string - treat as empty string
+				var replaceStr string
+				if args[2] == nil {
+					replaceStr = ""
+				} else {
+					var ok bool
+					replaceStr, ok = args[2].(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid argument for replace: third argument must be a string")
+					}
+				}
+
+				return strings.Replace(inputStr, searchStr, replaceStr, runtime.ToInt(args[3])), nil
 			} else if len(args) == 3 {
-				return strings.ReplaceAll(args[0].(string), args[1].(string), args[2].(string)), nil
+				// Handle null input string
+				if args[0] == nil {
+					return nil, nil
+				}
+				inputStr, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for replace: first argument must be a string")
+				}
+
+				// Handle null search string - return original if search is null
+				if args[1] == nil {
+					return inputStr, nil
+				}
+				searchStr, ok := args[1].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid argument for replace: second argument must be a string")
+				}
+
+				// Handle null replacement string - treat as empty string
+				var replaceStr string
+				if args[2] == nil {
+					replaceStr = ""
+				} else {
+					var ok bool
+					replaceStr, ok = args[2].(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid argument for replace: third argument must be a string")
+					}
+				}
+
+				return strings.ReplaceAll(inputStr, searchStr, replaceStr), nil
 			} else {
 				return nil, fmt.Errorf("invalid number of arguments for replace (expected 3 or 4, got %d)", len(args))
 			}
@@ -307,7 +515,15 @@ var Builtins = []*Function{
 	{
 		Name: "repeat",
 		Safe: func(args ...any) (any, uint, error) {
-			s := args[0].(string)
+			// Handle null input string
+			if args[0] == nil {
+				return "", 0, nil
+			}
+			s, ok := args[0].(string)
+			if !ok {
+				return nil, 0, fmt.Errorf("invalid argument for repeat: first argument must be a string")
+			}
+
 			n := runtime.ToInt(args[1])
 			if n < 0 {
 				return nil, 0, fmt.Errorf("invalid argument for repeat (expected positive integer, got %d)", n)
@@ -322,17 +538,37 @@ var Builtins = []*Function{
 	{
 		Name: "join",
 		Func: func(args ...any) (any, error) {
+			// Handle null input array
+			if args[0] == nil {
+				return "", nil
+			}
+
 			glue := ""
 			if len(args) == 2 {
-				glue = args[1].(string)
+				if args[1] != nil {
+					var ok bool
+					glue, ok = args[1].(string)
+					if !ok {
+						return nil, fmt.Errorf("invalid argument for join: second argument must be a string")
+					}
+				}
 			}
-			switch args[0].(type) {
+
+			switch arr := args[0].(type) {
 			case []string:
-				return strings.Join(args[0].([]string), glue), nil
+				return strings.Join(arr, glue), nil
 			case []any:
 				var s []string
-				for _, arg := range args[0].([]any) {
-					s = append(s, arg.(string))
+				for _, arg := range arr {
+					if arg == nil {
+						s = append(s, "")
+					} else {
+						str, ok := arg.(string)
+						if !ok {
+							return nil, fmt.Errorf("invalid array element for join: all elements must be strings")
+						}
+						s = append(s, str)
+					}
 				}
 				return strings.Join(s, glue), nil
 			}
@@ -349,28 +585,100 @@ var Builtins = []*Function{
 	{
 		Name: "indexOf",
 		Func: func(args ...any) (any, error) {
-			return strings.Index(args[0].(string), args[1].(string)), nil
+			// Handle null input string
+			if args[0] == nil {
+				return -1, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for indexOf: first argument must be a string")
+			}
+
+			// Handle null search string
+			if args[1] == nil {
+				return -1, nil
+			}
+			searchStr, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for indexOf: second argument must be a string")
+			}
+
+			return strings.Index(inputStr, searchStr), nil
 		},
 		Types: types(strings.Index),
 	},
 	{
 		Name: "lastIndexOf",
 		Func: func(args ...any) (any, error) {
-			return strings.LastIndex(args[0].(string), args[1].(string)), nil
+			// Handle null input string
+			if args[0] == nil {
+				return -1, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for lastIndexOf: first argument must be a string")
+			}
+
+			// Handle null search string
+			if args[1] == nil {
+				return -1, nil
+			}
+			searchStr, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for lastIndexOf: second argument must be a string")
+			}
+
+			return strings.LastIndex(inputStr, searchStr), nil
 		},
 		Types: types(strings.LastIndex),
 	},
 	{
 		Name: "hasPrefix",
 		Func: func(args ...any) (any, error) {
-			return strings.HasPrefix(args[0].(string), args[1].(string)), nil
+			// Handle null input string
+			if args[0] == nil {
+				return false, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for hasPrefix: first argument must be a string")
+			}
+
+			// Handle null prefix string
+			if args[1] == nil {
+				return true, nil // empty prefix matches any string
+			}
+			prefixStr, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for hasPrefix: second argument must be a string")
+			}
+
+			return strings.HasPrefix(inputStr, prefixStr), nil
 		},
 		Types: types(strings.HasPrefix),
 	},
 	{
 		Name: "hasSuffix",
 		Func: func(args ...any) (any, error) {
-			return strings.HasSuffix(args[0].(string), args[1].(string)), nil
+			// Handle null input string
+			if args[0] == nil {
+				return false, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for hasSuffix: first argument must be a string")
+			}
+
+			// Handle null suffix string
+			if args[1] == nil {
+				return true, nil // empty suffix matches any string
+			}
+			suffixStr, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for hasSuffix: second argument must be a string")
+			}
+
+			return strings.HasSuffix(inputStr, suffixStr), nil
 		},
 		Types: types(strings.HasSuffix),
 	},
@@ -431,7 +739,7 @@ var Builtins = []*Function{
 	{
 		Name: "toJSON",
 		Func: func(args ...any) (any, error) {
-			b, err := json.MarshalIndent(args[0], "", "  ")
+			b, err := json.Marshal(args[0])
 			if err != nil {
 				return nil, err
 			}
@@ -442,8 +750,20 @@ var Builtins = []*Function{
 	{
 		Name: "fromJSON",
 		Func: func(args ...any) (any, error) {
+			// Handle null input string
+			if args[0] == nil {
+				return nil, nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for fromJSON: first argument must be a string")
+			}
+
+			// Remove trailing commas before parsing
+			cleanedStr := removeTrailingCommas(inputStr)
+
 			var v any
-			err := json.Unmarshal([]byte(args[0].(string)), &v)
+			err := json.Unmarshal([]byte(cleanedStr), &v)
 			if err != nil {
 				return nil, err
 			}
@@ -454,14 +774,32 @@ var Builtins = []*Function{
 	{
 		Name: "toBase64",
 		Func: func(args ...any) (any, error) {
-			return base64.StdEncoding.EncodeToString([]byte(args[0].(string))), nil
+			// Handle null input string
+			if args[0] == nil {
+				return "", nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for toBase64: first argument must be a string")
+			}
+
+			return base64.StdEncoding.EncodeToString([]byte(inputStr)), nil
 		},
 		Types: types(new(func(string) string)),
 	},
 	{
 		Name: "fromBase64",
 		Func: func(args ...any) (any, error) {
-			b, err := base64.StdEncoding.DecodeString(args[0].(string))
+			// Handle null input string
+			if args[0] == nil {
+				return "", nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for fromBase64: first argument must be a string")
+			}
+
+			b, err := base64.StdEncoding.DecodeString(inputStr)
 			if err != nil {
 				return nil, err
 			}
@@ -500,7 +838,16 @@ var Builtins = []*Function{
 	{
 		Name: "duration",
 		Func: func(args ...any) (any, error) {
-			return time.ParseDuration(args[0].(string))
+			// Handle null input string
+			if args[0] == nil {
+				return time.Duration(0), nil
+			}
+			inputStr, ok := args[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid argument for duration: first argument must be a string")
+			}
+
+			return time.ParseDuration(inputStr)
 		},
 		Types: types(time.ParseDuration),
 	},
@@ -512,8 +859,70 @@ var Builtins = []*Function{
 				args = args[1:]
 			}
 
+			// Handle nil inputs
+			if len(args) == 0 || args[0] == nil {
+				t := time.Unix(0, 0)
+				if tz != nil {
+					t = t.In(tz)
+				}
+				return t, nil
+			}
+
+			// Handle epoch timestamp (numeric input)
+			switch v := args[0].(type) {
+			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+				epoch := runtime.ToInt64(v)
+				var t time.Time
+
+				// Check if it's milliseconds (timestamp > year 2001)
+				// Unix timestamp for Jan 1, 2001 is 978307200
+				if epoch > 978307200000 {
+					// Treat as milliseconds
+					t = time.Unix(epoch/1000, (epoch%1000)*1000000)
+				} else {
+					// Treat as seconds
+					t = time.Unix(epoch, 0)
+				}
+
+				if tz != nil {
+					t = t.In(tz)
+				}
+				return t, nil
+
+			case float32, float64:
+				epoch := runtime.ToFloat64(v)
+				var t time.Time
+
+				// Check if it's milliseconds
+				if epoch > 978307200000 {
+					// Treat as milliseconds
+					sec := int64(epoch / 1000)
+					nsec := int64((epoch - float64(sec*1000)) * 1000000)
+					t = time.Unix(sec, nsec)
+				} else {
+					// Treat as seconds (can have fractional part)
+					sec := int64(epoch)
+					nsec := int64((epoch - float64(sec)) * 1000000000)
+					t = time.Unix(sec, nsec)
+				}
+
+				if tz != nil {
+					t = t.In(tz)
+				}
+				return t, nil
+			}
+
+			// Handle string input (existing functionality)
 			date := args[0].(string)
 			if len(args) == 2 {
+				// Handle nil layout
+				if args[1] == nil {
+					t := time.Unix(0, 0)
+					if tz != nil {
+						t = t.In(tz)
+					}
+					return t, nil
+				}
 				layout := args[1].(string)
 				if tz != nil {
 					return time.ParseInLocation(layout, date, tz)
@@ -521,6 +930,14 @@ var Builtins = []*Function{
 				return time.Parse(layout, date)
 			}
 			if len(args) == 3 {
+				// Handle nil layout or timezone
+				if args[1] == nil || args[2] == nil {
+					t := time.Unix(0, 0)
+					if tz != nil {
+						t = t.In(tz)
+					}
+					return t, nil
+				}
 				layout := args[1].(string)
 				timeZone := args[2].(string)
 				tz, err := time.LoadLocation(timeZone)
@@ -580,6 +997,10 @@ var Builtins = []*Function{
 	{
 		Name: "timezone",
 		Func: func(args ...any) (any, error) {
+			// Handle nil inputs
+			if args[0] == nil {
+				return time.UTC, nil // Return UTC as default timezone for nil
+			}
 			tz, err := time.LoadLocation(args[0].(string))
 			if err != nil {
 				return nil, err
@@ -644,13 +1065,22 @@ var Builtins = []*Function{
 			if len(args) != 2 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 2, got %d)", len(args))
 			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil, fmt.Errorf("cannot take from %s", v.Kind())
 			}
-			n := reflect.ValueOf(args[1])
-			if !n.CanInt() {
-				return nil, fmt.Errorf("cannot take %s elements", n.Kind())
+			var n reflect.Value
+			if args[1] == nil {
+				n = reflect.ValueOf(0)
+			} else {
+				n = reflect.ValueOf(args[1])
+				if !n.CanInt() {
+					return nil, fmt.Errorf("cannot take %s elements", n.Kind())
+				}
 			}
 			to := 0
 			if n.Int() > int64(v.Len()) {
@@ -683,6 +1113,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
 				return nil, fmt.Errorf("cannot get keys from %s", v.Kind())
@@ -712,6 +1146,10 @@ var Builtins = []*Function{
 		Func: func(args ...any) (any, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
 			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
@@ -743,6 +1181,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil maps
+			if args[0] == nil {
+				return []any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Map {
 				return nil, fmt.Errorf("cannot transform %s to pairs", v.Kind())
@@ -771,6 +1213,10 @@ var Builtins = []*Function{
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
 			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return map[any]any{}, nil
+			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil, fmt.Errorf("cannot transform %s from pairs", v)
@@ -778,6 +1224,10 @@ var Builtins = []*Function{
 			out := reflect.MakeMap(mapType)
 			for i := 0; i < v.Len(); i++ {
 				pair := deref.Value(v.Index(i))
+				// Skip nil pairs
+				if !pair.IsValid() || (pair.Kind() == reflect.Ptr && pair.IsNil()) {
+					continue
+				}
 				if pair.Kind() != reflect.Array && pair.Kind() != reflect.Slice {
 					return nil, fmt.Errorf("invalid pair %v", pair)
 				}
@@ -806,6 +1256,11 @@ var Builtins = []*Function{
 		Safe: func(args ...any) (any, uint, error) {
 			if len(args) != 1 {
 				return nil, 0, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, 0, nil
 			}
 
 			v := reflect.ValueOf(args[0])
@@ -841,6 +1296,11 @@ var Builtins = []*Function{
 		Func: func(args ...any) (any, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, nil
 			}
 
 			v := reflect.ValueOf(args[0])
@@ -897,6 +1357,11 @@ var Builtins = []*Function{
 			var arr []any
 
 			for _, arg := range args {
+				// Handle nil arrays by treating them as empty arrays
+				if arg == nil {
+					continue
+				}
+
 				v := reflect.ValueOf(arg)
 
 				if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
@@ -935,6 +1400,10 @@ var Builtins = []*Function{
 			var size uint
 			if len(args) != 1 {
 				return nil, 0, fmt.Errorf("invalid number of arguments (expected 1, got %d)", len(args))
+			}
+			// Handle nil arrays
+			if args[0] == nil {
+				return []any{}, 0, nil
 			}
 			v := reflect.ValueOf(args[0])
 			if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
@@ -1065,5 +1534,79 @@ var Builtins = []*Function{
 			return ^x, nil
 		},
 		Types: types(new(func(int) int)),
+	},
+	{
+		Name: "random",
+		Func: func(args ...any) (any, error) {
+			if len(args) == 0 {
+				return nil, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got 0)")
+			}
+			if len(args) > 2 {
+				return nil, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got %d)", len(args))
+			}
+
+			// Convert arguments to int
+			var min, max int
+			var err error
+
+			if len(args) == 1 {
+				// random(max) - generates random number from 0 to max-1
+				max, err = toInt(args[0])
+				if err != nil {
+					return nil, fmt.Errorf("invalid argument for random: %v", err)
+				}
+				if max <= 0 {
+					return nil, fmt.Errorf("invalid argument for random: max must be positive, got %d", max)
+				}
+				return rand.Intn(max), nil
+			} else {
+				// random(min, max) - generates random number from min to max-1
+				min, err = toInt(args[0])
+				if err != nil {
+					return nil, fmt.Errorf("invalid first argument for random: %v", err)
+				}
+				max, err = toInt(args[1])
+				if err != nil {
+					return nil, fmt.Errorf("invalid second argument for random: %v", err)
+				}
+				if max <= min {
+					return nil, fmt.Errorf("invalid arguments for random: max must be greater than min, got min=%d, max=%d", min, max)
+				}
+				return min + rand.Intn(max-min), nil
+			}
+		},
+		Types: types(
+			new(func(int) int),
+			new(func(float64) int),
+			new(func(string) int),
+			new(func(int, int) int),
+			new(func(float64, int) int),
+			new(func(int, float64) int),
+			new(func(float64, float64) int),
+			new(func(string, int) int),
+			new(func(int, string) int),
+			new(func(string, string) int),
+		),
+		Validate: func(args []reflect.Type) (reflect.Type, error) {
+			if len(args) == 0 {
+				return anyType, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got 0)")
+			}
+			if len(args) > 2 {
+				return anyType, fmt.Errorf("invalid number of arguments for random (expected 1 or 2, got %d)", len(args))
+			}
+
+			// Validate that arguments can be converted to int
+			for i, arg := range args {
+				switch kind(arg) {
+				case reflect.Interface, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+					reflect.Float32, reflect.Float64, reflect.String:
+					// These types can be converted to int
+				default:
+					return anyType, fmt.Errorf("invalid argument %d for random (type %s)", i+1, arg)
+				}
+			}
+			return integerType, nil
+		},
 	},
 }

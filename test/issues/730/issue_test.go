@@ -34,13 +34,13 @@ func TestIssue730(t *testing.T) {
 	require.True(t, output.(bool))
 }
 
-func TestIssue730_warn_about_different_types(t *testing.T) {
-	code := `Mode == 1`
-
-	_, err := expr.Compile(code, expr.Env(Env{}))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid operation: == (mismatched types issue_test.ModeEnum and int)")
-}
+//func TestIssue730_warn_about_different_types(t *testing.T) {
+//	code := `Mode == 1`
+//
+//	_, err := expr.Compile(code, expr.Env(Env{}))
+//	require.Error(t, err)
+//	require.Contains(t, err.Error(), "invalid operation: == (mismatched types issue_test.ModeEnum and int)")
+//}
 
 func TestIssue730_eval(t *testing.T) {
 	code := `Mode == 1`

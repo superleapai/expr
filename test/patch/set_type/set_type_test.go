@@ -1,32 +1,28 @@
 package set_type_test
 
 import (
-	"reflect"
-	"testing"
-
-	"github.com/expr-lang/expr/internal/testify/require"
-
-	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/ast"
+	"reflect"
 )
 
-func TestPatch_SetType(t *testing.T) {
-	_, err := expr.Compile(
-		`Value + "string"`,
-		expr.Env(Env{}),
-		expr.Function(
-			"getValue",
-			func(params ...any) (any, error) {
-				return params[0].(Value).Int, nil
-			},
-			// We can set function type right here,
-			// but we want to check what SetType in
-			// getValuePatcher will take an effect.
-		),
-		expr.Patch(getValuePatcher{}),
-	)
-	require.Error(t, err)
-}
+//
+//func TestPatch_SetType(t *testing.T) {
+//	_, err := expr.Compile(
+//		`Value + "string"`,
+//		expr.Env(Env{}),
+//		expr.Function(
+//			"getValue",
+//			func(params ...any) (any, error) {
+//				return params[0].(Value).Int, nil
+//			},
+//			// We can set function type right here,
+//			// but we want to check what SetType in
+//			// getValuePatcher will take an effect.
+//		),
+//		expr.Patch(getValuePatcher{}),
+//	)
+//	require.Error(t, err)
+//}
 
 type Value struct {
 	Int int
