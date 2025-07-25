@@ -1617,46 +1617,50 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid number of arguments for mergeJson (expected 2, got %d)", len(args))
 			}
 
-			// Handle nil inputs
-			if args[0] == nil && args[1] == nil {
-				return map[string]any{}, nil
-			}
-			if args[0] == nil {
-				return args[1], nil
-			}
-			if args[1] == nil {
-				return args[0], nil
-			}
+			// Helper function to convert input to map[string]any
+			convertToMap := func(input any) (map[string]any, error) {
+				if input == nil {
+					return make(map[string]any), nil
+				}
 
-			// Convert inputs to map[string]any
-			obj1, ok1 := args[0].(map[string]any)
-			if !ok1 {
-				// Try to convert from generic map
-				if m, ok := args[0].(map[any]any); ok {
-					obj1 = make(map[string]any)
+				// If it's already a map, convert it
+				if obj, ok := input.(map[string]any); ok {
+					return obj, nil
+				}
+				if m, ok := input.(map[any]any); ok {
+					result := make(map[string]any)
 					for k, v := range m {
 						if keyStr, ok := k.(string); ok {
-							obj1[keyStr] = v
+							result[keyStr] = v
 						}
 					}
-				} else {
-					return nil, fmt.Errorf("invalid first argument for mergeJson: expected object, got %T", args[0])
+					return result, nil
 				}
+
+				// If it's a string, try to parse as JSON
+				if str, ok := input.(string); ok {
+					var parsed any
+					err := json.Unmarshal([]byte(str), &parsed)
+					if err != nil {
+						return nil, fmt.Errorf("invalid JSON string: %v", err)
+					}
+					if obj, ok := parsed.(map[string]any); ok {
+						return obj, nil
+					}
+					return nil, fmt.Errorf("JSON string does not represent an object")
+				}
+
+				return nil, fmt.Errorf("invalid argument: expected object or JSON string, got %T", input)
 			}
 
-			obj2, ok2 := args[1].(map[string]any)
-			if !ok2 {
-				// Try to convert from generic map
-				if m, ok := args[1].(map[any]any); ok {
-					obj2 = make(map[string]any)
-					for k, v := range m {
-						if keyStr, ok := k.(string); ok {
-							obj2[keyStr] = v
-						}
-					}
-				} else {
-					return nil, fmt.Errorf("invalid second argument for mergeJson: expected object, got %T", args[1])
-				}
+			obj1, err := convertToMap(args[0])
+			if err != nil {
+				return nil, fmt.Errorf("first argument: %v", err)
+			}
+
+			obj2, err := convertToMap(args[1])
+			if err != nil {
+				return nil, fmt.Errorf("second argument: %v", err)
 			}
 
 			// Create result map and copy from first object
@@ -1675,6 +1679,9 @@ var Builtins = []*Function{
 		Types: types(
 			new(func(map[string]any, map[string]any) map[string]any),
 			new(func(map[any]any, map[any]any) map[string]any),
+			new(func(string, string) map[string]any),
+			new(func(string, map[string]any) map[string]any),
+			new(func(map[string]any, string) map[string]any),
 		),
 	},
 	{
@@ -1684,26 +1691,45 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid number of arguments for addJsonKey (expected 3, got %d)", len(args))
 			}
 
-			// Handle nil object
-			var obj map[string]any
-			if args[0] == nil {
-				obj = make(map[string]any)
-			} else {
-				var ok bool
-				obj, ok = args[0].(map[string]any)
-				if !ok {
-					// Try to convert from generic map
-					if m, ok := args[0].(map[any]any); ok {
-						obj = make(map[string]any)
-						for k, v := range m {
-							if keyStr, ok := k.(string); ok {
-								obj[keyStr] = v
-							}
-						}
-					} else {
-						return nil, fmt.Errorf("invalid first argument for addJsonKey: expected object, got %T", args[0])
-					}
+			// Helper function to convert input to map[string]any
+			convertToMap := func(input any) (map[string]any, error) {
+				if input == nil {
+					return make(map[string]any), nil
 				}
+
+				// If it's already a map, convert it
+				if obj, ok := input.(map[string]any); ok {
+					return obj, nil
+				}
+				if m, ok := input.(map[any]any); ok {
+					result := make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							result[keyStr] = v
+						}
+					}
+					return result, nil
+				}
+
+				// If it's a string, try to parse as JSON
+				if str, ok := input.(string); ok {
+					var parsed any
+					err := json.Unmarshal([]byte(str), &parsed)
+					if err != nil {
+						return nil, fmt.Errorf("invalid JSON string: %v", err)
+					}
+					if obj, ok := parsed.(map[string]any); ok {
+						return obj, nil
+					}
+					return nil, fmt.Errorf("JSON string does not represent an object")
+				}
+
+				return nil, fmt.Errorf("invalid argument: expected object or JSON string, got %T", input)
+			}
+
+			obj, err := convertToMap(args[0])
+			if err != nil {
+				return nil, fmt.Errorf("first argument: %v", err)
 			}
 
 			// Handle nil key
@@ -1729,6 +1755,7 @@ var Builtins = []*Function{
 		Types: types(
 			new(func(map[string]any, string, any) map[string]any),
 			new(func(map[any]any, string, any) map[string]any),
+			new(func(string, string, any) map[string]any),
 		),
 	},
 	{
@@ -1738,24 +1765,45 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid number of arguments for updateJsonKey (expected 3, got %d)", len(args))
 			}
 
-			// Handle nil object
-			if args[0] == nil {
-				return nil, fmt.Errorf("invalid first argument for updateJsonKey: object cannot be null")
-			}
+			// Helper function to convert input to map[string]any
+			convertToMap := func(input any) (map[string]any, error) {
+				if input == nil {
+					return nil, fmt.Errorf("object cannot be null")
+				}
 
-			obj, ok := args[0].(map[string]any)
-			if !ok {
-				// Try to convert from generic map
-				if m, ok := args[0].(map[any]any); ok {
-					obj = make(map[string]any)
+				// If it's already a map, convert it
+				if obj, ok := input.(map[string]any); ok {
+					return obj, nil
+				}
+				if m, ok := input.(map[any]any); ok {
+					result := make(map[string]any)
 					for k, v := range m {
 						if keyStr, ok := k.(string); ok {
-							obj[keyStr] = v
+							result[keyStr] = v
 						}
 					}
-				} else {
-					return nil, fmt.Errorf("invalid first argument for updateJsonKey: expected object, got %T", args[0])
+					return result, nil
 				}
+
+				// If it's a string, try to parse as JSON
+				if str, ok := input.(string); ok {
+					var parsed any
+					err := json.Unmarshal([]byte(str), &parsed)
+					if err != nil {
+						return nil, fmt.Errorf("invalid JSON string: %v", err)
+					}
+					if obj, ok := parsed.(map[string]any); ok {
+						return obj, nil
+					}
+					return nil, fmt.Errorf("JSON string does not represent an object")
+				}
+
+				return nil, fmt.Errorf("invalid argument: expected object or JSON string, got %T", input)
+			}
+
+			obj, err := convertToMap(args[0])
+			if err != nil {
+				return nil, fmt.Errorf("first argument: %v", err)
 			}
 
 			// Handle nil key
@@ -1786,6 +1834,7 @@ var Builtins = []*Function{
 		Types: types(
 			new(func(map[string]any, string, any) map[string]any),
 			new(func(map[any]any, string, any) map[string]any),
+			new(func(string, string, any) map[string]any),
 		),
 	},
 	{
@@ -1795,24 +1844,45 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid number of arguments for deleteJsonKey (expected 2, got %d)", len(args))
 			}
 
-			// Handle nil object
-			if args[0] == nil {
-				return map[string]any{}, nil
-			}
+			// Helper function to convert input to map[string]any
+			convertToMap := func(input any) (map[string]any, error) {
+				if input == nil {
+					return make(map[string]any), nil
+				}
 
-			obj, ok := args[0].(map[string]any)
-			if !ok {
-				// Try to convert from generic map
-				if m, ok := args[0].(map[any]any); ok {
-					obj = make(map[string]any)
+				// If it's already a map, convert it
+				if obj, ok := input.(map[string]any); ok {
+					return obj, nil
+				}
+				if m, ok := input.(map[any]any); ok {
+					result := make(map[string]any)
 					for k, v := range m {
 						if keyStr, ok := k.(string); ok {
-							obj[keyStr] = v
+							result[keyStr] = v
 						}
 					}
-				} else {
-					return nil, fmt.Errorf("invalid first argument for deleteJsonKey: expected object, got %T", args[0])
+					return result, nil
 				}
+
+				// If it's a string, try to parse as JSON
+				if str, ok := input.(string); ok {
+					var parsed any
+					err := json.Unmarshal([]byte(str), &parsed)
+					if err != nil {
+						return nil, fmt.Errorf("invalid JSON string: %v", err)
+					}
+					if obj, ok := parsed.(map[string]any); ok {
+						return obj, nil
+					}
+					return nil, fmt.Errorf("JSON string does not represent an object")
+				}
+
+				return nil, fmt.Errorf("invalid argument: expected object or JSON string, got %T", input)
+			}
+
+			obj, err := convertToMap(args[0])
+			if err != nil {
+				return nil, fmt.Errorf("first argument: %v", err)
 			}
 
 			// Handle nil key
@@ -1837,6 +1907,7 @@ var Builtins = []*Function{
 		Types: types(
 			new(func(map[string]any, string) map[string]any),
 			new(func(map[any]any, string) map[string]any),
+			new(func(string, string) map[string]any),
 		),
 	},
 	{
@@ -1846,86 +1917,68 @@ var Builtins = []*Function{
 				return nil, fmt.Errorf("invalid number of arguments for diffJson (expected 2, got %d)", len(args))
 			}
 
-			// Handle nil inputs
-			var obj1, obj2 map[string]any
-
-			if args[0] == nil {
-				obj1 = make(map[string]any)
-			} else {
-				var ok bool
-				obj1, ok = args[0].(map[string]any)
-				if !ok {
-					// Try to convert from generic map
-					if m, ok := args[0].(map[any]any); ok {
-						obj1 = make(map[string]any)
-						for k, v := range m {
-							if keyStr, ok := k.(string); ok {
-								obj1[keyStr] = v
-							}
-						}
-					} else {
-						return nil, fmt.Errorf("invalid first argument for diffJson: expected object, got %T", args[0])
-					}
+			// Helper function to convert input to map[string]any
+			convertToMap := func(input any) (map[string]any, error) {
+				if input == nil {
+					return make(map[string]any), nil
 				}
-			}
 
-			if args[1] == nil {
-				obj2 = make(map[string]any)
-			} else {
-				var ok bool
-				obj2, ok = args[1].(map[string]any)
-				if !ok {
-					// Try to convert from generic map
-					if m, ok := args[1].(map[any]any); ok {
-						obj2 = make(map[string]any)
-						for k, v := range m {
-							if keyStr, ok := k.(string); ok {
-								obj2[keyStr] = v
-							}
-						}
-					} else {
-						return nil, fmt.Errorf("invalid second argument for diffJson: expected object, got %T", args[1])
-					}
+				// If it's already a map, convert it
+				if obj, ok := input.(map[string]any); ok {
+					return obj, nil
 				}
-			}
-
-			// Create diff result
-			diff := map[string]any{
-				"added":    make(map[string]any),
-				"removed":  make(map[string]any),
-				"modified": make(map[string]any),
-			}
-
-			added := diff["added"].(map[string]any)
-			removed := diff["removed"].(map[string]any)
-			modified := diff["modified"].(map[string]any)
-
-			// Check for added and modified keys
-			for key, value2 := range obj2 {
-				if value1, exists := obj1[key]; exists {
-					if !runtime.Equal(value1, value2) {
-						modified[key] = map[string]any{
-							"old": value1,
-							"new": value2,
+				if m, ok := input.(map[any]any); ok {
+					result := make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							result[keyStr] = v
 						}
 					}
-				} else {
-					added[key] = value2
+					return result, nil
+				}
+
+				// If it's a string, try to parse as JSON
+				if str, ok := input.(string); ok {
+					var parsed any
+					err := json.Unmarshal([]byte(str), &parsed)
+					if err != nil {
+						return nil, fmt.Errorf("invalid JSON string: %v", err)
+					}
+					if obj, ok := parsed.(map[string]any); ok {
+						return obj, nil
+					}
+					return nil, fmt.Errorf("JSON string does not represent an object")
+				}
+
+				return nil, fmt.Errorf("invalid argument: expected object or JSON string, got %T", input)
+			}
+
+			obj1, err := convertToMap(args[0])
+			if err != nil {
+				return nil, fmt.Errorf("first argument: %v", err)
+			}
+
+			obj2, err := convertToMap(args[1])
+			if err != nil {
+				return nil, fmt.Errorf("second argument: %v", err)
+			}
+
+			// Create result with keys from A that are NOT in B (A - B)
+			result := make(map[string]any)
+			for key, value := range obj1 {
+				if _, existsInB := obj2[key]; !existsInB {
+					result[key] = value
 				}
 			}
 
-			// Check for removed keys
-			for key, value1 := range obj1 {
-				if _, exists := obj2[key]; !exists {
-					removed[key] = value1
-				}
-			}
-
-			return diff, nil
+			return result, nil
 		},
 		Types: types(
 			new(func(map[string]any, map[string]any) map[string]any),
 			new(func(map[any]any, map[any]any) map[string]any),
+			new(func(string, string) map[string]any),
+			new(func(string, map[string]any) map[string]any),
+			new(func(map[string]any, string) map[string]any),
 		),
 	},
 }

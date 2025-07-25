@@ -878,6 +878,18 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 		expected := map[string]any{"a": 1, "b": 3, "c": 4}
 		assert.Equal(t, expected, out)
 
+		// Test with JSON strings
+		out, err = expr.Eval(`mergeJson('{"x": 1}', '{"y": 2}')`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"x": float64(1), "y": float64(2)} // JSON numbers are float64
+		assert.Equal(t, expected, out)
+
+		// Test mixed string and object
+		out, err = expr.Eval(`mergeJson('{"x": 1}', {"y": 2})`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"x": float64(1), "y": 2}
+		assert.Equal(t, expected, out)
+
 		// Test with nil objects
 		out, err = expr.Eval(`mergeJson(null, {"x": 1})`, env)
 		require.NoError(t, err)
@@ -890,6 +902,11 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 		out, err = expr.Eval(`mergeJson(null, null)`, env)
 		require.NoError(t, err)
 		assert.Equal(t, map[string]any{}, out)
+
+		// Test error with invalid JSON string
+		_, err = expr.Eval(`mergeJson('{"invalid": json}', {"a": 1})`, env)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid JSON string")
 	})
 
 	t.Run("addJsonKey", func(t *testing.T) {
@@ -904,6 +921,12 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 		out, err := expr.Run(program, env)
 		require.NoError(t, err)
 		expected := map[string]any{"a": 1, "b": 2, "c": 3}
+		assert.Equal(t, expected, out)
+
+		// Test with JSON string
+		out, err = expr.Eval(`addJsonKey('{"a": 1}', "b", 2)`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"a": float64(1), "b": 2}
 		assert.Equal(t, expected, out)
 
 		// Test adding to nil object
@@ -936,6 +959,12 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 		expected := map[string]any{"a": 10, "b": 2}
 		assert.Equal(t, expected, out)
 
+		// Test with JSON string
+		out, err = expr.Eval(`updateJsonKey('{"a": 1, "b": 2}', "a", 10)`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"a": 10, "b": float64(2)}
+		assert.Equal(t, expected, out)
+
 		// Test error with non-existent key
 		_, err = expr.Eval(`updateJsonKey({"a": 1}, "b", 2)`, env)
 		assert.Error(t, err)
@@ -966,6 +995,12 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 		expected := map[string]any{"a": 1, "c": 3}
 		assert.Equal(t, expected, out)
 
+		// Test with JSON string
+		out, err = expr.Eval(`deleteJsonKey('{"a": 1, "b": 2}', "a")`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"b": float64(2)}
+		assert.Equal(t, expected, out)
+
 		// Test deleting non-existent key (should not error)
 		out, err = expr.Eval(`deleteJsonKey({"a": 1}, "b")`, env)
 		require.NoError(t, err)
@@ -988,46 +1023,46 @@ func TestBuiltin_JSON_Functions(t *testing.T) {
 			"obj2": map[string]any{"a": 1, "b": 3, "c": 4},
 		}
 
-		// Test basic diff
+		// Test basic diff - A minus B (keys in A but not in B)
 		program, err := expr.Compile(`diffJson(obj1, obj2)`, expr.Env(env))
 		require.NoError(t, err)
 
 		out, err := expr.Run(program, env)
 		require.NoError(t, err)
 
-		diff := out.(map[string]any)
-		added := diff["added"].(map[string]any)
-		removed := diff["removed"].(map[string]any)
-		modified := diff["modified"].(map[string]any)
+		// Should return keys from obj1 that are NOT in obj2
+		// obj1 has: {"a": 1, "b": 2, "d": 4}
+		// obj2 has: {"a": 1, "b": 3, "c": 4}
+		// Keys in obj1 but NOT in obj2: {"d": 4}
+		expected := map[string]any{"d": 4}
+		assert.Equal(t, expected, out)
 
-		assert.Equal(t, map[string]any{"c": 4}, added)
-		assert.Equal(t, map[string]any{"d": 4}, removed)
-		assert.Equal(t, map[string]any{"b": map[string]any{"old": 2, "new": 3}}, modified)
+		// Test with JSON strings
+		out, err = expr.Eval(`diffJson('{"a": 1, "b": 2}', '{"a": 1, "c": 3}')`, env)
+		require.NoError(t, err)
+		// Keys in first object but not in second: {"b": 2}
+		expected = map[string]any{"b": float64(2)}
+		assert.Equal(t, expected, out)
 
-		// Test with identical objects
+		// Test with identical objects - should return empty
 		out, err = expr.Eval(`diffJson({"a": 1}, {"a": 1})`, env)
 		require.NoError(t, err)
-		diff = out.(map[string]any)
-		added = diff["added"].(map[string]any)
-		removed = diff["removed"].(map[string]any)
-		modified = diff["modified"].(map[string]any)
+		assert.Equal(t, map[string]any{}, out)
 
-		assert.Equal(t, map[string]any{}, added)
-		assert.Equal(t, map[string]any{}, removed)
-		assert.Equal(t, map[string]any{}, modified)
+		// Test with completely different objects
+		out, err = expr.Eval(`diffJson({"x": 1, "y": 2}, {"z": 3})`, env)
+		require.NoError(t, err)
+		expected = map[string]any{"x": 1, "y": 2}
+		assert.Equal(t, expected, out)
 
 		// Test with nil objects
-		out, err = expr.Eval(`diffJson(null, {"a": 1})`, env)
-		require.NoError(t, err)
-		diff = out.(map[string]any)
-		added = diff["added"].(map[string]any)
-		assert.Equal(t, map[string]any{"a": 1}, added)
-
 		out, err = expr.Eval(`diffJson({"a": 1}, null)`, env)
 		require.NoError(t, err)
-		diff = out.(map[string]any)
-		removed = diff["removed"].(map[string]any)
-		assert.Equal(t, map[string]any{"a": 1}, removed)
+		assert.Equal(t, map[string]any{"a": 1}, out) // all keys from A since B is empty
+
+		out, err = expr.Eval(`diffJson(null, {"a": 1})`, env)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]any{}, out) // empty A minus anything is empty
 	})
 
 	t.Run("JSON_functions_with_fromJSON", func(t *testing.T) {
