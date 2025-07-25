@@ -1609,4 +1609,323 @@ var Builtins = []*Function{
 			return integerType, nil
 		},
 	},
+	// JSON manipulation functions
+	{
+		Name: "mergeJson",
+		Func: func(args ...any) (any, error) {
+			if len(args) != 2 {
+				return nil, fmt.Errorf("invalid number of arguments for mergeJson (expected 2, got %d)", len(args))
+			}
+
+			// Handle nil inputs
+			if args[0] == nil && args[1] == nil {
+				return map[string]any{}, nil
+			}
+			if args[0] == nil {
+				return args[1], nil
+			}
+			if args[1] == nil {
+				return args[0], nil
+			}
+
+			// Convert inputs to map[string]any
+			obj1, ok1 := args[0].(map[string]any)
+			if !ok1 {
+				// Try to convert from generic map
+				if m, ok := args[0].(map[any]any); ok {
+					obj1 = make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							obj1[keyStr] = v
+						}
+					}
+				} else {
+					return nil, fmt.Errorf("invalid first argument for mergeJson: expected object, got %T", args[0])
+				}
+			}
+
+			obj2, ok2 := args[1].(map[string]any)
+			if !ok2 {
+				// Try to convert from generic map
+				if m, ok := args[1].(map[any]any); ok {
+					obj2 = make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							obj2[keyStr] = v
+						}
+					}
+				} else {
+					return nil, fmt.Errorf("invalid second argument for mergeJson: expected object, got %T", args[1])
+				}
+			}
+
+			// Create result map and copy from first object
+			result := make(map[string]any)
+			for k, v := range obj1 {
+				result[k] = v
+			}
+
+			// Merge from second object (overwrites existing keys)
+			for k, v := range obj2 {
+				result[k] = v
+			}
+
+			return result, nil
+		},
+		Types: types(
+			new(func(map[string]any, map[string]any) map[string]any),
+			new(func(map[any]any, map[any]any) map[string]any),
+		),
+	},
+	{
+		Name: "addJsonKey",
+		Func: func(args ...any) (any, error) {
+			if len(args) != 3 {
+				return nil, fmt.Errorf("invalid number of arguments for addJsonKey (expected 3, got %d)", len(args))
+			}
+
+			// Handle nil object
+			var obj map[string]any
+			if args[0] == nil {
+				obj = make(map[string]any)
+			} else {
+				var ok bool
+				obj, ok = args[0].(map[string]any)
+				if !ok {
+					// Try to convert from generic map
+					if m, ok := args[0].(map[any]any); ok {
+						obj = make(map[string]any)
+						for k, v := range m {
+							if keyStr, ok := k.(string); ok {
+								obj[keyStr] = v
+							}
+						}
+					} else {
+						return nil, fmt.Errorf("invalid first argument for addJsonKey: expected object, got %T", args[0])
+					}
+				}
+			}
+
+			// Handle nil key
+			if args[1] == nil {
+				return nil, fmt.Errorf("invalid key for addJsonKey: key cannot be null")
+			}
+			key, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid key for addJsonKey: expected string, got %T", args[1])
+			}
+
+			// Create result map and copy existing keys
+			result := make(map[string]any)
+			for k, v := range obj {
+				result[k] = v
+			}
+
+			// Add new key-value pair
+			result[key] = args[2]
+
+			return result, nil
+		},
+		Types: types(
+			new(func(map[string]any, string, any) map[string]any),
+			new(func(map[any]any, string, any) map[string]any),
+		),
+	},
+	{
+		Name: "updateJsonKey",
+		Func: func(args ...any) (any, error) {
+			if len(args) != 3 {
+				return nil, fmt.Errorf("invalid number of arguments for updateJsonKey (expected 3, got %d)", len(args))
+			}
+
+			// Handle nil object
+			if args[0] == nil {
+				return nil, fmt.Errorf("invalid first argument for updateJsonKey: object cannot be null")
+			}
+
+			obj, ok := args[0].(map[string]any)
+			if !ok {
+				// Try to convert from generic map
+				if m, ok := args[0].(map[any]any); ok {
+					obj = make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							obj[keyStr] = v
+						}
+					}
+				} else {
+					return nil, fmt.Errorf("invalid first argument for updateJsonKey: expected object, got %T", args[0])
+				}
+			}
+
+			// Handle nil key
+			if args[1] == nil {
+				return nil, fmt.Errorf("invalid key for updateJsonKey: key cannot be null")
+			}
+			key, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid key for updateJsonKey: expected string, got %T", args[1])
+			}
+
+			// Check if key exists
+			if _, exists := obj[key]; !exists {
+				return nil, fmt.Errorf("key '%s' does not exist in object", key)
+			}
+
+			// Create result map and copy existing keys
+			result := make(map[string]any)
+			for k, v := range obj {
+				result[k] = v
+			}
+
+			// Update the key with new value
+			result[key] = args[2]
+
+			return result, nil
+		},
+		Types: types(
+			new(func(map[string]any, string, any) map[string]any),
+			new(func(map[any]any, string, any) map[string]any),
+		),
+	},
+	{
+		Name: "deleteJsonKey",
+		Func: func(args ...any) (any, error) {
+			if len(args) != 2 {
+				return nil, fmt.Errorf("invalid number of arguments for deleteJsonKey (expected 2, got %d)", len(args))
+			}
+
+			// Handle nil object
+			if args[0] == nil {
+				return map[string]any{}, nil
+			}
+
+			obj, ok := args[0].(map[string]any)
+			if !ok {
+				// Try to convert from generic map
+				if m, ok := args[0].(map[any]any); ok {
+					obj = make(map[string]any)
+					for k, v := range m {
+						if keyStr, ok := k.(string); ok {
+							obj[keyStr] = v
+						}
+					}
+				} else {
+					return nil, fmt.Errorf("invalid first argument for deleteJsonKey: expected object, got %T", args[0])
+				}
+			}
+
+			// Handle nil key
+			if args[1] == nil {
+				return nil, fmt.Errorf("invalid key for deleteJsonKey: key cannot be null")
+			}
+			key, ok := args[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid key for deleteJsonKey: expected string, got %T", args[1])
+			}
+
+			// Create result map and copy all keys except the one to delete
+			result := make(map[string]any)
+			for k, v := range obj {
+				if k != key {
+					result[k] = v
+				}
+			}
+
+			return result, nil
+		},
+		Types: types(
+			new(func(map[string]any, string) map[string]any),
+			new(func(map[any]any, string) map[string]any),
+		),
+	},
+	{
+		Name: "diffJson",
+		Func: func(args ...any) (any, error) {
+			if len(args) != 2 {
+				return nil, fmt.Errorf("invalid number of arguments for diffJson (expected 2, got %d)", len(args))
+			}
+
+			// Handle nil inputs
+			var obj1, obj2 map[string]any
+
+			if args[0] == nil {
+				obj1 = make(map[string]any)
+			} else {
+				var ok bool
+				obj1, ok = args[0].(map[string]any)
+				if !ok {
+					// Try to convert from generic map
+					if m, ok := args[0].(map[any]any); ok {
+						obj1 = make(map[string]any)
+						for k, v := range m {
+							if keyStr, ok := k.(string); ok {
+								obj1[keyStr] = v
+							}
+						}
+					} else {
+						return nil, fmt.Errorf("invalid first argument for diffJson: expected object, got %T", args[0])
+					}
+				}
+			}
+
+			if args[1] == nil {
+				obj2 = make(map[string]any)
+			} else {
+				var ok bool
+				obj2, ok = args[1].(map[string]any)
+				if !ok {
+					// Try to convert from generic map
+					if m, ok := args[1].(map[any]any); ok {
+						obj2 = make(map[string]any)
+						for k, v := range m {
+							if keyStr, ok := k.(string); ok {
+								obj2[keyStr] = v
+							}
+						}
+					} else {
+						return nil, fmt.Errorf("invalid second argument for diffJson: expected object, got %T", args[1])
+					}
+				}
+			}
+
+			// Create diff result
+			diff := map[string]any{
+				"added":    make(map[string]any),
+				"removed":  make(map[string]any),
+				"modified": make(map[string]any),
+			}
+
+			added := diff["added"].(map[string]any)
+			removed := diff["removed"].(map[string]any)
+			modified := diff["modified"].(map[string]any)
+
+			// Check for added and modified keys
+			for key, value2 := range obj2 {
+				if value1, exists := obj1[key]; exists {
+					if !runtime.Equal(value1, value2) {
+						modified[key] = map[string]any{
+							"old": value1,
+							"new": value2,
+						}
+					}
+				} else {
+					added[key] = value2
+				}
+			}
+
+			// Check for removed keys
+			for key, value1 := range obj1 {
+				if _, exists := obj2[key]; !exists {
+					removed[key] = value1
+				}
+			}
+
+			return diff, nil
+		},
+		Types: types(
+			new(func(map[string]any, map[string]any) map[string]any),
+			new(func(map[any]any, map[any]any) map[string]any),
+		),
+	},
 }
