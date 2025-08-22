@@ -876,13 +876,8 @@ var Builtins = []*Function{
 
 				// Check if it's milliseconds (timestamp > year 2001)
 				// Unix timestamp for Jan 1, 2001 is 978307200
-				if epoch > 978307200000 {
-					// Treat as milliseconds
-					t = time.Unix(epoch/1000, (epoch%1000)*1000000)
-				} else {
-					// Treat as seconds
-					t = time.Unix(epoch, 0)
-				}
+				// Treat as milliseconds
+				t = time.Unix(epoch/1000, (epoch%1000)*1000000)
 
 				if tz != nil {
 					t = t.In(tz)
@@ -894,17 +889,11 @@ var Builtins = []*Function{
 				var t time.Time
 
 				// Check if it's milliseconds
-				if epoch > 978307200000 {
-					// Treat as milliseconds
-					sec := int64(epoch / 1000)
-					nsec := int64((epoch - float64(sec*1000)) * 1000000)
-					t = time.Unix(sec, nsec)
-				} else {
-					// Treat as seconds (can have fractional part)
-					sec := int64(epoch)
-					nsec := int64((epoch - float64(sec)) * 1000000000)
-					t = time.Unix(sec, nsec)
-				}
+
+				// Treat as milliseconds
+				sec := int64(epoch / 1000)
+				nsec := int64((epoch - float64(sec*1000)) * 1000000)
+				t = time.Unix(sec, nsec)
 
 				if tz != nil {
 					t = t.In(tz)
