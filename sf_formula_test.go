@@ -1048,3 +1048,139 @@ func TestSFFormula_SpecificResults(t *testing.T) {
 		assert.Equal(t, true, got)
 	})
 }
+
+func TestSFFormula_BLANKVALUE(t *testing.T) {
+	opts := sfOpts()
+	tests := []struct {
+		name string
+		expr string
+		env  map[string]any
+		want any
+	}{
+		{
+			name: "nil field returns substitute",
+			expr: `BLANKVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": nil},
+			want: "N/A",
+		},
+		{
+			name: "empty string returns substitute",
+			expr: `BLANKVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": ""},
+			want: "N/A",
+		},
+		{
+			name: "whitespace-only returns substitute",
+			expr: `BLANKVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": "   "},
+			want: "N/A",
+		},
+		{
+			name: "non-blank returns original",
+			expr: `BLANKVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": "555-1234"},
+			want: "555-1234",
+		},
+		{
+			name: "numeric zero is not blank",
+			expr: `BLANKVALUE(Amount, 100)`,
+			env:  map[string]any{"Amount": 0},
+			want: 0,
+		},
+		{
+			name: "numeric value is not blank",
+			expr: `BLANKVALUE(Amount, 100)`,
+			env:  map[string]any{"Amount": 42.5},
+			want: 42.5,
+		},
+		{
+			name: "nil numeric returns substitute",
+			expr: `BLANKVALUE(Amount, 100)`,
+			env:  map[string]any{"Amount": nil},
+			want: 100,
+		},
+		{
+			name: "false is not blank",
+			expr: `BLANKVALUE(IsActive, true)`,
+			env:  map[string]any{"IsActive": false},
+			want: false,
+		},
+		{
+			name: "nested: BLANKVALUE with expression substitute",
+			expr: `BLANKVALUE(Phone, "Call " & Name)`,
+			env:  map[string]any{"Phone": nil, "Name": "Acme"},
+			want: "Call Acme",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := expr.Compile(tt.expr, append(opts, expr.Env(tt.env))...)
+			require.NoError(t, err)
+			got, err := expr.Run(program, tt.env)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestSFFormula_NULLVALUE(t *testing.T) {
+	opts := sfOpts()
+	tests := []struct {
+		name string
+		expr string
+		env  map[string]any
+		want any
+	}{
+		{
+			name: "nil returns substitute",
+			expr: `NULLVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": nil},
+			want: "N/A",
+		},
+		{
+			name: "empty string is NOT null - returns original",
+			expr: `NULLVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": ""},
+			want: "",
+		},
+		{
+			name: "non-nil returns original",
+			expr: `NULLVALUE(Phone, "N/A")`,
+			env:  map[string]any{"Phone": "555-1234"},
+			want: "555-1234",
+		},
+		{
+			name: "zero is not null",
+			expr: `NULLVALUE(Amount, 100)`,
+			env:  map[string]any{"Amount": 0},
+			want: 0,
+		},
+		{
+			name: "nil numeric returns substitute",
+			expr: `NULLVALUE(Amount, 100)`,
+			env:  map[string]any{"Amount": nil},
+			want: 100,
+		},
+		{
+			name: "false is not null",
+			expr: `NULLVALUE(IsActive, true)`,
+			env:  map[string]any{"IsActive": false},
+			want: false,
+		},
+		{
+			name: "whitespace is NOT null - returns original",
+			expr: `NULLVALUE(Name, "Unknown")`,
+			env:  map[string]any{"Name": "   "},
+			want: "   ",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := expr.Compile(tt.expr, append(opts, expr.Env(tt.env))...)
+			require.NoError(t, err)
+			got, err := expr.Run(program, tt.env)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

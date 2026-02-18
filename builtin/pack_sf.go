@@ -99,8 +99,34 @@ func sfISNEW(env any, args ...any) (any, error) {
 	return false, nil
 }
 
+// BLANKVALUE returns the substitute value if the expression is blank
+// (nil, empty string, or whitespace-only string), otherwise returns the expression value.
+// BLANKVALUE(expr, substituteExpr) → any
+func sfBLANKVALUE(args ...any) (any, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("BLANKVALUE expects 2 arguments, got %d", len(args))
+	}
+	if IsBlankVal(args[0]) {
+		return args[1], nil
+	}
+	return args[0], nil
+}
+
+// NULLVALUE returns the substitute value if the expression is null,
+// otherwise returns the expression value.
+// NULLVALUE(expr, substituteExpr) → any
+func sfNULLVALUE(args ...any) (any, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("NULLVALUE expects 2 arguments, got %d", len(args))
+	}
+	if IsNilVal(args[0]) {
+		return args[1], nil
+	}
+	return args[0], nil
+}
+
 // SalesforceRuntimeFunctions returns the SF-specific runtime functions:
-// ISPICKVAL, INCLUDES, ISCHANGED, PRIORVALUE, ISNEW.
+// ISPICKVAL, INCLUDES, ISCHANGED, PRIORVALUE, ISNEW, BLANKVALUE, NULLVALUE.
 func SalesforceRuntimeFunctions() []*PackFunction {
 	variadic := PackFuncTypes(new(func(...any) any))
 	return []*PackFunction{
@@ -131,6 +157,16 @@ func SalesforceRuntimeFunctions() []*PackFunction {
 			CtxFn: sfISNEW,
 			Types: PackFuncTypes(new(func() any)),
 			IsCtx: true,
+		},
+		{
+			Name:  "BLANKVALUE",
+			Fn:    sfBLANKVALUE,
+			Types: variadic,
+		},
+		{
+			Name:  "NULLVALUE",
+			Fn:    sfNULLVALUE,
+			Types: variadic,
 		},
 	}
 }
