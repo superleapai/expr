@@ -508,6 +508,42 @@ func TestE2E_SF_MultipleRules_MultipleRecords(t *testing.T) {
 			IsNew: false,
 		},
 		{
+			Label: "Bad email format, no @ sign",
+			Fields: map[string]any{
+				"Name":                "Email Deal",
+				"Amount":              float64(20000),
+				"StageName":           "Proposal",
+				"Email":               "not-an-email",
+				"Account.Owner.Email": "owner@acme.com",
+			},
+			Old:   map[string]any{"StageName": "Proposal"},
+			IsNew: false,
+		},
+		{
+			Label: "High amount, no account owner email",
+			Fields: map[string]any{
+				"Name":                "Whale Deal",
+				"Amount":              float64(250000),
+				"StageName":           "Negotiation",
+				"Email":               "whale@bigcorp.com",
+				"Account.Owner.Email": nil,
+			},
+			Old:   map[string]any{"StageName": "Proposal"},
+			IsNew: false,
+		},
+		{
+			Label: "Multiple violations: new, no name, bad email",
+			Fields: map[string]any{
+				"Name":                nil,
+				"Amount":              float64(8000),
+				"StageName":           "Prospecting",
+				"Email":               "bademail",
+				"Account.Owner.Email": "mgr@example.com",
+			},
+			Old:   nil,
+			IsNew: true,
+		},
+		{
 			Label: "Clean record, no errors",
 			Fields: map[string]any{
 				"Name":                "Good Deal",
@@ -585,20 +621,41 @@ func TestE2E_SF_MultipleRules_MultipleRecords(t *testing.T) {
 		t.Logf("  [%s] %s: %s", e.RecordLabel, e.RuleName, e.Message)
 	}
 
-	// Expect exactly 3 errors:
-	require.Len(t, errors, 3)
+	// Build a lookup for easier assertion: "RecordLabel|RuleName" → true
+	errorSet := make(map[string]bool)
+	for _, e := range errors {
+		errorSet[e.RecordLabel+"|"+e.RuleName] = true
+	}
 
-	// Record "New record with blank name" → "New record must have name"
-	assert.Equal(t, "New record with blank name", errors[0].RecordLabel)
-	assert.Equal(t, "New record must have name", errors[0].RuleName)
+	// Expect exactly 7 errors across 8 records:
+	require.Len(t, errors, 7)
 
-	// Record "Closed Won missing amount" → "Amount required for Closed Won"
-	assert.Equal(t, "Closed Won missing amount", errors[1].RecordLabel)
-	assert.Equal(t, "Amount required for Closed Won", errors[1].RuleName)
+	// Record "New record with blank name" → fires: "New record must have name"
+	assert.True(t, errorSet["New record with blank name|New record must have name"])
 
-	// Record "Stage regression" → "Stage regression blocked"
-	assert.Equal(t, "Stage regression Negotiation→Qualification", errors[2].RecordLabel)
-	assert.Equal(t, "Stage regression blocked", errors[2].RuleName)
+	// Record "Closed Won missing amount" → fires: "Amount required for Closed Won"
+	assert.True(t, errorSet["Closed Won missing amount|Amount required for Closed Won"])
+
+	// Record "Stage regression" → fires: "Stage regression blocked"
+	assert.True(t, errorSet["Stage regression Negotiation→Qualification|Stage regression blocked"])
+
+	// Record "Bad email format" → fires: "Email format check"
+	assert.True(t, errorSet["Bad email format, no @ sign|Email format check"])
+
+	// Record "High amount, no account owner email" → fires: "High amount needs manager"
+	assert.True(t, errorSet["High amount, no account owner email|High amount needs manager"])
+
+	// Record "Multiple violations" → fires BOTH: "New record must have name" AND "Email format check"
+	assert.True(t, errorSet["Multiple violations: new, no name, bad email|New record must have name"])
+	assert.True(t, errorSet["Multiple violations: new, no name, bad email|Email format check"])
+
+	// Record "Existing deal, stage advanced" → no errors (stage went forward)
+	assert.False(t, errorSet["Existing deal, stage advanced|Stage regression blocked"])
+
+	// Record "Clean record, no errors" → no errors at all
+	for _, e := range errors {
+		assert.NotEqual(t, "Clean record, no errors", e.RecordLabel)
+	}
 }
 
 func ExampleExtractDeps() {
