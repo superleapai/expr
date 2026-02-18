@@ -2,14 +2,15 @@ package checker
 
 import (
 	"fmt"
+	"reflect"
+	"regexp"
+
 	"github.com/expr-lang/expr/ast"
 	"github.com/expr-lang/expr/builtin"
 	. "github.com/expr-lang/expr/checker/nature"
 	"github.com/expr-lang/expr/conf"
 	"github.com/expr-lang/expr/file"
 	"github.com/expr-lang/expr/parser"
-	"reflect"
-	"regexp"
 )
 
 // Run visitors in a given config over the given tree
@@ -228,6 +229,10 @@ func (v *checker) ident(node ast.Node, name string, strict, builtins bool) Natur
 		if fn, ok := v.config.Functions[name]; ok {
 			return Nature{Type: fn.Type(), Func: fn}
 		}
+		// Case-insensitive fallback for Functions
+		if fn := resolveFunctionCI(name, v.config.Functions); fn != nil {
+			return Nature{Type: fn.Type(), Func: fn}
+		}
 		if fn, ok := v.config.Builtins[name]; ok {
 			return Nature{Type: fn.Type(), Func: fn}
 		}
@@ -305,7 +310,7 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 	r = r.Deref()
 
 	switch node.Operator {
-	case "==", "!=":
+	case "==", "!=", "<>":
 		// Equality operations should work on any comparable types
 		if isComparable(l, r) {
 			return boolNature
@@ -604,6 +609,10 @@ func (v *checker) BinaryNode(node *ast.BinaryNode) Nature {
 			return arrayOf(integerNature)
 		}
 		return arrayOf(integerNature)
+
+	case "&":
+		// String concatenation operator - always returns string
+		return stringNature
 
 	case "??":
 		if isNil(l) && !isNil(r) {

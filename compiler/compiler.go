@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/expr-lang/expr/ast"
 	"github.com/expr-lang/expr/builtin"
@@ -29,11 +30,12 @@ func Compile(tree *parser.Tree, config *conf.Config) (program *Program, err erro
 	}()
 
 	c := &compiler{
-		config:         config,
-		locations:      make([]file.Location, 0),
-		constantsIndex: make(map[any]int),
-		functionsIndex: make(map[string]int),
-		debugInfo:      make(map[string]string),
+		config:            config,
+		locations:         make([]file.Location, 0),
+		constantsIndex:    make(map[any]int),
+		functionsIndex:    make(map[string]int),
+		ctxFunctionsIndex: make(map[string]int),
+		debugInfo:         make(map[string]string),
 	}
 
 	c.compile(tree.Node)
@@ -57,7 +59,7 @@ func Compile(tree *parser.Tree, config *conf.Config) (program *Program, err erro
 		span = c.spans[0]
 	}
 
-	program = NewProgram(
+	program = NewProgramWithCtx(
 		tree.Source,
 		tree.Node,
 		c.locations,
@@ -66,6 +68,7 @@ func Compile(tree *parser.Tree, config *conf.Config) (program *Program, err erro
 		c.bytecode,
 		c.arguments,
 		c.functions,
+		c.ctxFunctions,
 		c.debugInfo,
 		span,
 	)
@@ -73,20 +76,22 @@ func Compile(tree *parser.Tree, config *conf.Config) (program *Program, err erro
 }
 
 type compiler struct {
-	config         *conf.Config
-	locations      []file.Location
-	bytecode       []Opcode
-	variables      int
-	scopes         []scope
-	constants      []any
-	constantsIndex map[any]int
-	functions      []Function
-	functionsIndex map[string]int
-	debugInfo      map[string]string
-	nodes          []ast.Node
-	spans          []*Span
-	chains         [][]int
-	arguments      []int
+	config            *conf.Config
+	locations         []file.Location
+	bytecode          []Opcode
+	variables         int
+	scopes            []scope
+	constants         []any
+	constantsIndex    map[any]int
+	functions         []Function
+	functionsIndex    map[string]int
+	ctxFunctions      []CtxFunction
+	ctxFunctionsIndex map[string]int
+	debugInfo         map[string]string
+	nodes             []ast.Node
+	spans             []*Span
+	chains            [][]int
+	arguments         []int
 }
 
 type scope struct {
@@ -164,6 +169,10 @@ func (c *compiler) addVariable(name string) int {
 
 // emitFunction adds builtin.Function.Func to the program.functions and emits call opcode.
 func (c *compiler) emitFunction(fn *builtin.Function, argsLen int) {
+	if fn.IsCtx {
+		c.emitCtxFunction(fn, argsLen)
+		return
+	}
 	switch argsLen {
 	case 0:
 		c.emit(OpCall0, c.addFunction(fn.Name, fn.Func))
@@ -177,6 +186,39 @@ func (c *compiler) emitFunction(fn *builtin.Function, argsLen int) {
 		c.emit(OpLoadFunc, c.addFunction(fn.Name, fn.Func))
 		c.emit(OpCallN, argsLen)
 	}
+}
+
+// emitCtxFunction adds a context-aware function and emits context call opcode.
+func (c *compiler) emitCtxFunction(fn *builtin.Function, argsLen int) {
+	idx := c.addCtxFunction(fn.Name, fn.CtxFunc)
+	switch argsLen {
+	case 0:
+		c.emit(OpCallCtx0, idx)
+	case 1:
+		c.emit(OpCallCtx1, idx)
+	case 2:
+		c.emit(OpCallCtx2, idx)
+	case 3:
+		c.emit(OpCallCtx3, idx)
+	default:
+		c.emit(OpPush, c.addConstant(fn.CtxFunc))
+		c.emit(OpCallCtxN, argsLen)
+	}
+}
+
+// addCtxFunction adds a CtxFunction to the program.ctxFunctions and returns its index.
+func (c *compiler) addCtxFunction(name string, fn CtxFunction) int {
+	if fn == nil {
+		panic("context function is nil")
+	}
+	if p, ok := c.ctxFunctionsIndex[name]; ok {
+		return p
+	}
+	p := len(c.ctxFunctions)
+	c.ctxFunctions = append(c.ctxFunctions, fn)
+	c.ctxFunctionsIndex[name] = p
+	c.debugInfo[fmt.Sprintf("ctxfunc_%d", p)] = name
+	return p
 }
 
 // addFunction adds builtin.Function.Func to the program.functions and returns its index.
@@ -433,7 +475,7 @@ func (c *compiler) BinaryNode(node *ast.BinaryNode) {
 	case "==":
 		c.equalBinaryNode(node)
 
-	case "!=":
+	case "!=", "<>":
 		c.equalBinaryNode(node)
 		c.emit(OpNot)
 
@@ -489,6 +531,13 @@ func (c *compiler) BinaryNode(node *ast.BinaryNode) {
 		c.compile(node.Right)
 		c.derefInNeeded(node.Right)
 		c.emit(OpAdd)
+
+	case "&":
+		c.compile(node.Left)
+		c.derefInNeeded(node.Left)
+		c.compile(node.Right)
+		c.derefInNeeded(node.Right)
+		c.emit(OpConcat)
 
 	case "-":
 		c.compile(node.Left)
@@ -769,6 +818,11 @@ func (c *compiler) CallNode(node *ast.CallNode) {
 	if ident, ok := node.Callee.(*ast.IdentifierNode); ok {
 		if c.config != nil {
 			if fn, ok := c.config.Functions[ident.Value]; ok {
+				c.emitFunction(fn, len(node.Arguments))
+				return
+			}
+			// Case-insensitive fallback for Functions
+			if fn := resolveCompilerFunctionCI(ident.Value, c.config.Functions); fn != nil {
 				c.emitFunction(fn, len(node.Arguments))
 				return
 			}
@@ -1104,6 +1158,17 @@ func (c *compiler) BuiltinNode(node *ast.BuiltinNode) {
 	}
 
 	panic(fmt.Sprintf("unknown builtin %v", node.Name))
+}
+
+// resolveCompilerFunctionCI performs a case-insensitive lookup in a FunctionsTable.
+func resolveCompilerFunctionCI(name string, table map[string]*builtin.Function) *builtin.Function {
+	upper := strings.ToUpper(name)
+	for k, fn := range table {
+		if strings.ToUpper(k) == upper {
+			return fn
+		}
+	}
+	return nil
 }
 
 func (c *compiler) emitCond(body func()) {

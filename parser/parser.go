@@ -411,19 +411,19 @@ func (p *parser) parseSecondary() Node {
 	case Identifier:
 		p.next()
 		switch token.Value {
-		case "true":
+		case "true", "TRUE":
 			node = p.createNode(&BoolNode{Value: true}, token.Location)
 			if node == nil {
 				return nil
 			}
 			return node
-		case "false":
+		case "false", "FALSE":
 			node = p.createNode(&BoolNode{Value: false}, token.Location)
 			if node == nil {
 				return nil
 			}
 			return node
-		case "nil":
+		case "nil", "NULL":
 			node = p.createNode(&NilNode{}, token.Location)
 			if node == nil {
 				return nil

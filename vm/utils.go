@@ -8,6 +8,7 @@ import (
 type (
 	Function     = func(params ...any) (any, error)
 	SafeFunction = func(params ...any) (any, uint, error)
+	CtxFunction  = func(env any, params ...any) (any, error)
 )
 
 var (

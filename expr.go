@@ -154,6 +154,107 @@ func Function(name string, fn func(params ...any) (any, error), types ...any) Op
 	}
 }
 
+// ContextFunction adds a context-aware function that receives the runtime env as its first argument.
+// This is used for functions like TODAY(), NOW(), ISCHANGED() that need access to runtime context.
+func ContextFunction(name string, fn func(env any, params ...any) (any, error), types ...any) Option {
+	return func(c *conf.Config) {
+		ts := make([]reflect.Type, len(types))
+		for i, t := range types {
+			t := reflect.TypeOf(t)
+			if t.Kind() == reflect.Ptr {
+				t = t.Elem()
+			}
+			if t.Kind() != reflect.Func {
+				panic(fmt.Sprintf("expr: type of %s is not a function", name))
+			}
+			ts[i] = t
+		}
+		c.Functions[name] = &builtin.Function{
+			Name:    name,
+			CtxFunc: fn,
+			Types:   ts,
+			IsCtx:   true,
+		}
+	}
+}
+
+// WithPackFunctions registers a slice of PackFunctions as expr options.
+// This is the generic bridge between pack exports and expr.Option.
+func WithPackFunctions(fns []*builtin.PackFunction) Option {
+	return func(c *conf.Config) {
+		for _, pf := range fns {
+			if pf.IsCtx {
+				c.Functions[pf.Name] = &builtin.Function{
+					Name:    pf.Name,
+					CtxFunc: pf.CtxFn,
+					Types:   pf.Types,
+					IsCtx:   true,
+				}
+			} else {
+				c.Functions[pf.Name] = &builtin.Function{
+					Name:  pf.Name,
+					Func:  pf.Fn,
+					Types: pf.Types,
+				}
+			}
+		}
+	}
+}
+
+// WithLogicalFunctions registers logical functions: AND, OR, NOT, IF, CASE, ISBLANK, ISNULL, ISNUMBER.
+func WithLogicalFunctions() Option {
+	return WithPackFunctions(builtin.LogicalFunctions())
+}
+
+// WithMathFunctions registers math functions: ABS, CEILING, FLOOR, ROUND, MAX, MIN, MOD, SQRT, LOG, LN, EXP, MCEILING, MFLOOR, TRUNC.
+func WithMathFunctions() Option {
+	return WithPackFunctions(builtin.MathFunctions())
+}
+
+// WithTrigFunctions registers trigonometric functions: SIN, COS, TAN, ASIN, ACOS, ATAN, ATAN2, PI.
+func WithTrigFunctions() Option {
+	return WithPackFunctions(builtin.TrigFunctions())
+}
+
+// WithTextFunctions registers text functions: BEGINS, CONTAINS, FIND, LEFT, RIGHT, MID, LEN, LOWER, UPPER, TRIM, INITCAP, SUBSTITUTE, LPAD, RPAD, TEXT, VALUE, REVERSE, BR, ASCII, CHR.
+func WithTextFunctions() Option {
+	return WithPackFunctions(builtin.TextFunctions())
+}
+
+// WithDateTimeFunctions registers date/time functions: DATE, DATEVALUE, DATETIMEVALUE, DAY, MONTH, YEAR, WEEKDAY, ADDMONTHS, HOUR, MINUTE, SECOND, MILLISECOND, TIMEVALUE, TODAY, NOW, TIMENOW, DAYOFYEAR, ISOWEEK, ISOYEAR, FROMUNIXTIME, UNIXTIMESTAMP, FORMATDURATION.
+func WithDateTimeFunctions() Option {
+	return WithPackFunctions(builtin.DateTimeFunctions())
+}
+
+// WithRegexFunctions registers the REGEX function.
+func WithRegexFunctions() Option {
+	return WithPackFunctions(builtin.RegexFunctions())
+}
+
+// WithEncodingFunctions registers encoding functions: HTMLENCODE, URLENCODE, JSENCODE, JSINHTMLENCODE.
+func WithEncodingFunctions() Option {
+	return WithPackFunctions(builtin.EncodingFunctions())
+}
+
+// WithSalesforceRuntimeFunctions registers SF-specific runtime functions: ISPICKVAL, INCLUDES, ISCHANGED, PRIORVALUE, ISNEW.
+func WithSalesforceRuntimeFunctions() Option {
+	return WithPackFunctions(builtin.SalesforceRuntimeFunctions())
+}
+
+// WithAllFormulaPacks registers all Salesforce-compatible formula function packs.
+func WithAllFormulaPacks() Option {
+	return func(c *conf.Config) {
+		WithLogicalFunctions()(c)
+		WithMathFunctions()(c)
+		WithTrigFunctions()(c)
+		WithTextFunctions()(c)
+		WithDateTimeFunctions()(c)
+		WithRegexFunctions()(c)
+		WithEncodingFunctions()(c)
+		WithSalesforceRuntimeFunctions()(c)
+	}
+}
+
 // DisableAllBuiltins disables all builtins.
 func DisableAllBuiltins() Option {
 	return func(c *conf.Config) {

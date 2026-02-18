@@ -1,0 +1,2219 @@
+# All Salesforce Validation Rule Formulas
+
+1.
+```
+not(ISBLANK(Account__r.ParentId) )
+```
+
+2.
+```
+NOT($Permission.Lead_Validation) &&
+ISCHANGED( AM_manager__c )  &&
+AM_manager__c = True  &&
+(ISBLANK(text(Paid_AM_Subscription_Plan__c ))  ||
+ISBLANK(AM_Prepaid_Amount_Including_Taxes__c ) ||
+ISBLANK(Expiry_Date__c ))
+```
+
+3.
+```
+IF(
+    $User.Email = 'pearl.sahni@razorpay.com'  ||
+    $User.Email = 'pratik.pujara@razorpay.com',
+    FALSE,
+    TRUE
+)
+```
+
+4.
+```
+ISCHANGED(BU_Owner__c) &&
+NOT(
+     $Profile.Name  = "System Administrator" ||
+    $Profile.Name  = "Integration User"
+)
+```
+
+5.
+```
+AND(
+  ISCHANGED(OwnerId),
+  PRIORVALUE(Owner_Role__c) = "Banking",
+  Owner_Role__c <> "Banking"
+)
+```
+
+6.
+```
+AND(Owner.Email <> 'salesforce@razorpay.com' ,
+$Profile.Name ='Cross Border Profile')
+```
+
+7.
+```
+(ISCHANGED ( Owner_Role__c )
+&&
+((PRIORVALUE( Owner_Role__c ) = 'Direct Sales') || (PRIORVALUE( Owner_Role__c ) = 'Growth') || (PRIORVALUE( Owner_Role__c ) = 'KAM'))
+&&
+ Owner.FirstName = 'Integration')
+&&
+NOT(ISPICKVAL(Approval_Status__c, 'Approved - ENTP to IUser'))
+&&
+( $Profile.Name != 'Integration User' || $Profile.Name != 'System Administrator' || $Profile.Name != 'Sales Manager')
+```
+
+8.
+```
+(ISCHANGED ( Owner_Role__c )
+&&
+((PRIORVALUE( Owner_Role__c ) = 'Direct Sales') || (PRIORVALUE( Owner_Role__c ) = 'Growth') || (PRIORVALUE( Owner_Role__c ) = 'KAM'))
+&&
+ (Owner_Role__c = 'SME Sales' || Owner_Role__c = 'CSM' ))
+&&
+( $Profile.Name != 'Integration User' || $Profile.Name != 'System Administrator' )
+```
+
+9.
+```
+/*AND ( PRIORVALUE( Owner_Role__c ) <> 'Automation User',ISCHANGED( OwnerId ),  $User.Email = 'adnan.noorie@razorpay.com',   PRIORVALUE( Owner_Role__c )  <> 'Emerging Business')*/
+
+AND(OR(
+PRIORVALUE( Owner_Role__c )='IF - KAM',PRIORVALUE( Owner_Role__c )='IF - SAM',PRIORVALUE( Owner_Role__c )='IF - Startup',PRIORVALUE( Owner_Role__c )='Hybrid - MM',PRIORVALUE( Owner_Role__c )='Hybrid - SAM',PRIORVALUE( Owner_Role__c )='Hybrid - KAM'
+),
+ISCHANGED( OwnerId ),  $User.Email = 'adnan.noorie@razorpay.com')
+```
+
+10.
+```
+AND(
+ISCHANGED( OwnerId ) ,
+
+OR(
+
+AND(RecordTypeId = "012OX000000MgVF",
+$Profile.Name <> "System Administrator") ,
+
+AND(OwnerId <> Parent.OwnerId ,
+OR( Parent.Owner_Role__c = 'IF - SAM',
+Parent.Owner_Role__c = 'IF - KAM',
+Parent.Owner_Role__c = 'IF - Startup',
+Parent.Owner_Role__c = 'Hybrid - SAM',
+Parent.Owner_Role__c = 'Hybrid - KAM',
+Parent.Owner_Role__c = 'Hybrid - MM'
+) ,
+OR( Owner_Role__c <> 'Banking' , Owner_Role__c <> 'Partnership')
+)))
+```
+
+11.
+```
+AND(
+    ISCHANGED(Partner_Type__c),
+
+    NOT(
+        OR(
+            $Profile.Name = "System Administrator",
+            $User.Email = "samiksha.gogoi@razorpay.com",
+            $User.Email = "rohith.john@razorpay.com",
+            $User.Email = "rohan.joshi@razorpay.com",
+            $User.Email = "supriya.b@razorpay.com",
+            $User.Email = "johnson.agassi@razorpay.com",
+            $User.Email = "hetal.sanwal@razorpay.com",
+            $User.Email = "nandini.shukla@razorpay.com",
+            $User.Email = "chakravarthy.c@razorpay.com",
+            $User.Email = "nithyakiran.n@razorpay.com",
+            $User.Email = "v.harishankar@razorpay.com",
+            $User.Email = "astha.gupta@razorpay.com",
+            $User.Email = "senthilkumar.k@razorpay.com"
+        )
+    )
+)
+```
+
+12.
+```
+!REGEX(Ranking__c,"(^[0-9])") && NOT($Permission.Lead_Validation) && !ISBLANK(Ranking__c) && ($Profile.Name != 'Integration User' || $Profile.Name != 'System Administrator')
+```
+
+13.
+```
+(ISCHANGED ( Owner_Role__c )
+&&
+((PRIORVALUE( Owner_Role__c ) = 'SME Sales') || (PRIORVALUE( Owner_Role__c ) = 'CSM') ||(PRIORVALUE( Owner_Role__c ) = 'SME Opfin') || (PRIORVALUE( Owner_Role__c ) = 'SME X'))
+&&
+Owner.FirstName = 'Integration')
+&&
+NOT(ISPICKVAL(Approval_Status__c, 'Approved - SME to IUser'))
+&&
+Lifetime_GMV__c >= 2500000
+&&
+( $Profile.Name != 'Integration User' || $Profile.Name != 'System Administrator' || $Profile.Name != 'Sales Manager' || $User.Email != 'adnan.noorie@razorpay.com')
+```
+
+14.
+```
+(ISCHANGED ( Owner_Role__c )
+&&
+((PRIORVALUE( Owner_Role__c ) = 'Mid Market') || (PRIORVALUE( Owner_Role__c ) = 'SME Sales') || (PRIORVALUE( Owner_Role__c ) = 'CSM') || (PRIORVALUE( Owner_Role__c ) = 'SME Opfin') || (PRIORVALUE( Owner_Role__c ) = 'SME X'))|| PRIORVALUE( Owner_Role__c ) = 'OPO X')
+&&
+(Owner_Role__c = 'KAM' || Owner_Role__c = 'Growth' || Owner_Role__c = 'Direct Sales')
+&&
+NOT(ISPICKVAL(Approval_Status__c, 'Approved - SME to IUser'))
+&&
+( $Profile.Name != 'Integration User' || $Profile.Name != 'System Administrator' || $Profile.Name != 'Sales Manager' || $User.Email != 'adnan.noorie@razorpay.com')
+```
+
+15.
+```
+AND(
+    OwnerId <> PRIORVALUE(OwnerId),
+    PRIORVALUE(OwnerId) <> '005OX00000eAK3QYAW',  /* Startuphunting Queue Id */
+    $User.Id = "005C5000000KynHIAS"               /* Ishika's User Id */
+)
+```
+
+16.
+```
+/*ISCHANGED(OwnerId)
+&&
+Owner.Username = 'integrationuser@razorpay.com'
+&&
+LEFT($User.ProfileId, 15) = '00e6F000001PsXe'*/
+
+AND ( PRIORVALUE(Owner_Role__c) <> 'Automation User',ISCHANGED(OwnerId),  $User.Email  = "adnan.noorie@razorpay.com",   PRIORVALUE(Owner_Role__c)  <> 'Emerging Business')
+```
+
+17.
+```
+AND( !(OR(($Profile.Name ="Integration User"),($Profile.Name ="System Administrator"),($User.Username ="sriram.seshadri@razorpay.com"),($User.Username ="manoj.kishore@razorpay.com"),($User.Username ="yogitha.reddy@razorpay.com"),($User.Username ="shikhar.shrivastava@razorpay.com"),( $User.Username="deepak.r@razorpay.com"))) , ISCHANGED(Ops_UW_Status__c) ,
+
+OR(
+ISPICKVAL(Ops_UW_Status__c,'PRE_VERIFICATION_COMPLETE'),
+ISPICKVAL(Ops_UW_Status__c,'OFFER_APPROVED'),
+
+ISPICKVAL(Ops_UW_Status__c,'OFFER_ACCEPTED'),
+ISPICKVAL(Ops_UW_Status__c,'POST_OFFER_DOCS_COLLECTED'),
+
+ISPICKVAL(Ops_UW_Status__c,'POST_OFFER_DOCS_APPROVED'),
+ISPICKVAL(Ops_UW_Status__c,'SENT_TO_ESIGN'),
+
+ISPICKVAL(Ops_UW_Status__c,'MERCHANT_ESIGNED'),
+ISPICKVAL(Ops_UW_Status__c,'ESIGNED'),
+
+ISPICKVAL(Ops_UW_Status__c,'OFFER_COMPLETE')
+)
+)
+```
+
+18.
+```
+ISCHANGED( Ops_UW_Status__c )
+&&
+ISPICKVAL (Ops_UW_Status__c, 'PRE_VERIFICATION_COMPLETE')
+&&
+ISBLANK( Eligibility_Verification_Exception__c )
+```
+
+19.
+```
+IF(AND(OR(RecordType.Name=="Sales",RecordType.Name=="Service"),ISPICKVAL(Settlement_Schedule__c  ,"Other"),ISBLANK(  Other_Settlement_Schedule__c )),true,false)
+```
+
+20.
+```
+From_Amount__c  >=  To_Amount__c
+```
+
+21.
+```
+AND
+(
+
+ISPICKVAL( Designation_of_stake__c  , 'Others'),
+ISBLANK(  Designation__c  ),
+$Profile.Name <> "System Administrator",
+$Profile.Name <> "Integration User",
+OR(
+
+$User.Rollup_Description__c = 'IF - SAM',
+$User.Rollup_Description__c = 'IF - KAM',
+$User.Rollup_Description__c = 'IF - Startup',
+$User.Rollup_Description__c = 'Hybrid - SAM',
+$User.Rollup_Description__c = 'Hybrid - KAM',
+$User.Rollup_Description__c = 'Hybrid - MM',
+$User.Rollup_Description__c =  'Business Strategy'
+)
+
+)
+```
+
+22.
+```
+AND(
+
+
+
+ISPICKVAL(  Razorpay_Experience__c  , 'Neutral, Detractor'),
+
+
+ISBLANK( Why_is_the_POC_not_a_Promotor__c ),
+$Profile.Name <> "System Administrator",
+$Profile.Name <> "Integration User",
+OR(
+
+$User.Rollup_Description__c = 'IF - SAM',
+$User.Rollup_Description__c = 'IF - KAM',
+$User.Rollup_Description__c = 'IF - Startup',
+$User.Rollup_Description__c = 'Hybrid - SAM',
+$User.Rollup_Description__c = 'Hybrid - KAM',
+$User.Rollup_Description__c = 'Hybrid - MM',
+$User.Rollup_Description__c =  'Business Strategy'
+)
+
+
+
+)
+```
+
+23.
+```
+AND(
+ISBLANK(  FirstName  ),
+$Profile.Name <> "System Administrator",
+$Profile.Name <> "Integration User",
+OR(
+
+$User.Rollup_Description__c = 'IF - SAM',
+$User.Rollup_Description__c = 'IF - KAM',
+$User.Rollup_Description__c = 'IF - Startup',
+$User.Rollup_Description__c = 'Hybrid - SAM',
+$User.Rollup_Description__c = 'Hybrid - KAM',
+$User.Rollup_Description__c = 'Hybrid - MM',
+$User.Rollup_Description__c =  'Business Strategy'
+)
+
+)
+```
+
+24.
+```
+AND(
+
+
+
+ISPICKVAL(  Team__c  , 'Others'),
+
+
+ISBLANK(  Other_Team__c  ),
+$Profile.Name <> "System Administrator",
+$Profile.Name <> "Integration User",
+OR(
+
+$User.Rollup_Description__c = 'IF - SAM',
+$User.Rollup_Description__c = 'IF - KAM',
+$User.Rollup_Description__c = 'IF - Startup',
+$User.Rollup_Description__c = 'Hybrid - SAM',
+$User.Rollup_Description__c = 'Hybrid - KAM',
+$User.Rollup_Description__c = 'Hybrid - MM',
+$User.Rollup_Description__c =  'Business Strategy'
+)
+
+
+
+)
+```
+
+25.
+```
+AND(AND(ISPICKVAL(Solution_Stages__c,'Solution Closure'),ISBLANK(TEXT(Reason_for_Solution_closed_accepted__c))),ISCHANGED(Solution_Stages__c))
+```
+
+26.
+```
+AND(AND(ISPICKVAL(Solution_Stages__c,'Solution Rejected'),ISBLANK(TEXT(Reason_for_Solution_closed_accepted__c))),ISCHANGED(Solution_Stages__c))
+```
+
+27.
+```
+NOT(ISBLANK(Screenshot_link__c ))&& (
+NOT(BEGINS(Screenshot_link__c , "https://drive.google.com/"))&&
+NOT(BEGINS(Screenshot_link__c , "drive.google.com/"))&&
+NOT(BEGINS(Screenshot_link__c , "http://drive.google.com/")) || RIGHT(Screenshot_link__c,4)= 'com/')&&
+NOT($Permission.Lead_Validation) && (Owner_Role__c != 'SME Sales' &&  Owner_Role__c != '')
+```
+
+28.
+```
+(ISPICKVAL( Status__c ,'Issue Resolvable')  &&  ISCHANGED(Status__c)  && (( ISBLANK( TEXT(Incremental_Domestic_GMV_Cr__c )) && ISBLANK( TEXT( Incremental_International_GMV_Cr__c )) )  || ISBLANK( Description__c  )  || ISBLANK( TEXT( Sales_Input__c ) ) || ISBLANK( TEXT( Sales_Output__c  ) )) &&  RecordType.Name = 'GMV-Wins' && NOT($Permission.Lead_Validation))
+|| (ISPICKVAL( Status__c ,'Qualified')  &&  ISCHANGED(Status__c)  && ISBLANK( TEXT( Actionable_Closed__c ) )&&  RecordType.Name = 'GMV-Wins'&& NOT($Permission.Lead_Validation))
+|| (ISPICKVAL( Status__c ,'Lead Won') &&  ISCHANGED(Status__c)  && ISBLANK( Description__c  )&&  RecordType.Name = 'GMV-Wins' && NOT($Permission.Lead_Validation))
+|| (ISPICKVAL( Status__c ,'Lead Lost') &&  ISCHANGED(Status__c)  && (ISBLANK( Description__c  ) || ISBLANK( TEXT( Reason__c )))&&  RecordType.Name = 'GMV-Wins'&& NOT($Permission.Lead_Validation))
+```
+
+29.
+```
+AND(
+    OR(
+        ISPICKVAL( Sales_Input__c ,"Pricing"),
+        ISPICKVAL( Sales_Input__c ,"Support"),
+        ISPICKVAL( Sales_Input__c ,"Sales/Relationship"),
+        ISPICKVAL( Sales_Input__c ,"Method Enablement")
+    ),
+    ISBLANK( Text(Input_Type__c) ),
+    NOT($Permission.Lead_Validation)
+)
+```
+
+30.
+```
+AND( ISPICKVAL( Sales_Output__c ,'Rank Upgrade') , ISBLANK( TEXT( Sales_Output_Description__c ) ) )
+```
+
+31.
+```
+AND (
+  OR (
+     ISPICKVAL(Status__c, "Issue Resolvable"),
+     ISPICKVAL(Status__c, "Issue Resolved"),
+     ISPICKVAL(Status__c, "Closed Won"),
+     ISPICKVAL(Status__c, "Closed Lost"),
+     ISPICKVAL(Status__c, "Completed")
+   ),
+   OR(
+     ISBLANK( TEXT(Sales_Input__c) ),
+     ISBLANK( TEXT(Sales_Output__c) )
+   )
+)
+```
+
+32.
+```
+AND(AND(
+    OR(
+        ISPICKVAL(  Sales_Output__c  , 'Rank Upgrade' ),
+        ISPICKVAL( Sales_Output__c , 'Multi to Single PG' )
+    ),
+    ISBLANK( Screenshot_link__c )
+),   AND(Owner_Role__c != 'SME Sales',Owner_Role__c != ''))
+```
+
+33.
+```
+ISPICKVAL( Revivable__c ,'Referral/New Biz') &&  ISCHANGED(Revivable__c) &&   ISBLANK( Referral_Details__c )
+```
+
+34.
+```
+AND(ISPICKVAL(Backup_Terminal_Present__c,'Yes'), ISBLANK(  Backup_Terminal_Id__c))
+```
+
+35.
+```
+AND(
+    ISPICKVAL(Request_Category__c, "Integration Error / Debugging"),
+    ISPICKVAL(Stages__c, "Integration Closed"),
+    OR(
+        ISPICKVAL(PRIORVALUE(Stages__c), "Integration In Progress"),
+        ISPICKVAL(PRIORVALUE(Stages__c), "New")
+    )
+)
+```
+
+36.
+```
+AND( ISPICKVAL( User_Status__c , 'Inactive') , Inactive_Record__c  <> True )
+```
+
+37.
+```
+AND( ISPICKVAL( User_Status__c , 'Dropped') , Dropped_Record__c <> True)
+```
+
+38.
+```
+AND(
+    OR(
+        ISPICKVAL(Request_Category__c, "Integration Audit Pre Go-live"),
+        ISPICKVAL(Request_Category__c, "Integration Audit Post Go-live")
+    ),
+    ISPICKVAL(Stages__c, "Integration Closed"),
+    OR(
+        ISPICKVAL(PRIORVALUE(Stages__c), "Integration In Progress"),
+        ISPICKVAL(PRIORVALUE(Stages__c), "New"),
+        ISPICKVAL(PRIORVALUE(Stages__c), "Testing & QA")
+
+    )
+)
+```
+
+39.
+```
+AND( ISPICKVAL( PRIORVALUE(User_Status__c), 'Inactive'),
+
+Inactive_Record__c = True,
+    NOT(ISPICKVAL(User_Status__c, 'Dropped'))
+)
+```
+
+40.
+```
+AND(AND(ISPICKVAL(Stages__c,'Request Rejected'),ISBLANK( TEXT(Rejection_Reason__c))), ISCHANGED(Stages__c))
+```
+
+41.
+```
+AND(AND(ISPICKVAL(Stages__c,'Mx Dropped Out'),ISBLANK( TEXT(Rejection_Reason__c))), ISCHANGED(Stages__c))
+```
+
+42.
+```
+ISCHANGED( Stages__c ) &&
+CASE(Stages__c,
+"New", 1,
+"Under-Discussion", 2,
+"Requirement Discussion Closed", 3,
+"Integration In Progress", 4,
+"Testing & QA", 5,
+"Integration Audit", 6,
+"Integration Completed", 7,
+"MX Go-Live", 8,
+"Hypercare Period", 9,
+"Integration Closed", 10,
+"Request Rejected", 11,
+0
+)
+<
+CASE(PRIORVALUE(Stages__c),
+"New", 1,
+"Under-Discussion", 2,
+"Requirement Discussion Closed", 3,
+"Integration In Progress", 4,
+"Testing & QA", 5,
+"Integration Audit", 6,
+"Integration Completed", 7,
+"MX Go-Live", 8,
+"Hypercare Period", 9,
+"Integration Closed", 10,
+"Request Rejected", 11,
+0
+)
+```
+
+43.
+```
+AND( ISPICKVAL(Product_Type__c, 'Payment Gateway'),
+    OR(
+	   AND(
+	     ISPICKVAL(Stages__c,'Integration Completed'),ISCHANGED(Stages__c),
+
+           NOT(
+        OR(
+            ISPICKVAL(Request_Category__c, 'Integration Error / Debugging'),
+            ISPICKVAL(Request_Category__c, 'Integration Audit Post Go-live')
+        )
+    ),
+
+		 OR(ISPICKVAL(PRIORVALUE(Stages__c), 'Testing & QA'),
+		    ISPICKVAL(PRIORVALUE(Stages__c), 'Integration Audit'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Integration In Progress'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'New')
+
+		    ),
+			OR(ISBLANK(TEXT( Anomalies_Found_in_LIVE_Mode__c )),LEN(Suggestions_provided_in_LIVE_Mode__c) = 0,LEN(Observations_in_LIVE_Mode__c) = 0)
+
+		  ),
+		  AND(
+                     NOT(
+			OR (
+			    ISPICKVAL(Request_Category__c,'Integration Error / Debugging'),
+		            ISPICKVAL(Request_Category__c,'Integration Audit Post Go-live')
+	                    )
+
+			 ),
+		  OR(
+			  ISPICKVAL(Stages__c,'MX Go-Live'),
+			  ISPICKVAL(Stages__c,'Hypercare Period'),
+			  ISPICKVAL(Stages__c,'Integration Closed')
+
+
+			  ),
+			 OR(ISPICKVAL(PRIORVALUE(Stages__c), 'Testing & QA'),
+			   ISPICKVAL(PRIORVALUE(Stages__c), 'Integration Audit'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Integration In Progress'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'New')
+
+		     ),
+
+		 OR(ISBLANK(TEXT( Anomalies_Found_in_LIVE_Mode__c )),LEN(Suggestions_provided_in_LIVE_Mode__c) = 0,LEN(Observations_in_LIVE_Mode__c) = 0)
+
+
+		     )
+
+	 )
+  )
+```
+
+44.
+```
+AND(
+    ISPICKVAL(Product_Type__c, 'Neobanking X'),
+    OR(
+	   AND(
+	     ISPICKVAL(Stages__c,'Integration Completed'),ISCHANGED(Stages__c),
+
+  NOT(
+        OR(
+            ISPICKVAL(Request_Category__c, 'Integration Error / Debugging'),
+            ISPICKVAL(Request_Category__c, 'Integration Audit Post Go-live')
+        )
+    ),
+
+
+		    OR(ISPICKVAL(PRIORVALUE(Stages__c), 'Testing & QA'),
+		    ISPICKVAL(PRIORVALUE(Stages__c), 'Integration Audit'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Integration In Progress'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+                    ISPICKVAL(PRIORVALUE(Stages__c), 'New')
+
+		    ),
+			OR(ISBLANK(TEXT( Anomalies_Found_in_LIVE_Mode__c )),LEN(Suggestions_provided_in_LIVE_Mode__c) = 0,LEN(Observations_in_LIVE_Mode__c) = 0)
+
+		  ),
+		  AND(
+
+  NOT(
+        OR(
+            ISPICKVAL(Request_Category__c, 'Integration Error / Debugging'),
+            ISPICKVAL(Request_Category__c, 'Integration Audit Post Go-live')
+        )
+    ),
+
+		     OR(
+			  ISPICKVAL(Stages__c,'MX Go-Live'),
+			  ISPICKVAL(Stages__c,'Hypercare Period'),
+			  ISPICKVAL(Stages__c,'Integration Closed')
+
+
+			  ),
+			 OR(ISPICKVAL(PRIORVALUE(Stages__c), 'Testing & QA'),
+			   ISPICKVAL(PRIORVALUE(Stages__c), 'Integration Audit'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Integration In Progress'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+                           ISPICKVAL(PRIORVALUE(Stages__c), 'New')
+
+		     ),
+			 OR(ISBLANK(TEXT( Anomalies_Found_in_LIVE_Mode__c )),LEN(Suggestions_provided_in_LIVE_Mode__c) = 0,LEN(Observations_in_LIVE_Mode__c) = 0)
+
+
+		     )
+
+	 )
+  )
+```
+
+45.
+```
+AND(
+     ISPICKVAL(Product_Type__c, 'Payment Gateway'),
+    OR(
+	   AND(
+	     ISPICKVAL(Stages__c,'Integration In Progress'),ISCHANGED(Stages__c),
+		 OR(ISPICKVAL(PRIORVALUE(Stages__c), 'New'),
+		    ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+			ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed')
+		    ),
+			OR(ISBLANK(TEXT(Checkout_Type__c)),ISBLANK(TEXT(Document_Shared_with_Merchant__c)),ISBLANK(TEXT(Platform__c)),
+				ISBLANK(Frontend_Framework__c),ISBLANK(Backend_Technology__c),
+				LEN(Integration_Notes__c) = 0,LEN(Merchant_Use_Case__c) = 0)
+		  ),
+		  AND(
+		     OR(
+			  ISPICKVAL(Stages__c,'Testing & QA'),
+			  ISPICKVAL(Stages__c,'Integration Audit'),
+			  ISPICKVAL(Stages__c,'Integration Completed'),
+			  ISPICKVAL(Stages__c,'MX Go-Live'),
+			  ISPICKVAL(Stages__c,'Hypercare Period'),
+			  ISPICKVAL(Stages__c,'Integration Closed')
+
+
+			  ),
+			 OR(ISPICKVAL(PRIORVALUE(Stages__c), 'New'),
+				ISPICKVAL(PRIORVALUE(Stages__c), 'Under-Discussion'),
+			    ISPICKVAL(PRIORVALUE(Stages__c), 'Requirement Discussion Closed')
+		     ),
+			 OR(ISBLANK(TEXT(Checkout_Type__c)),ISBLANK(TEXT(Document_Shared_with_Merchant__c)),ISBLANK(TEXT(Platform__c)),
+				ISBLANK(Frontend_Framework__c),ISBLANK(Backend_Technology__c),
+				LEN(Integration_Notes__c) = 0,LEN(Merchant_Use_Case__c) = 0)
+
+		     )
+
+	 )
+  )
+```
+
+46.
+```
+AND(
+    ISCHANGED(OwnerId),
+
+        OR(
+        PRIORVALUE( OwnerId ) = "00GOX000003GQhZ",
+        PRIORVALUE(Owner_Role__c) = "Banking"
+    ),
+
+Owner_Role__c <> "Banking"
+)
+```
+
+47.
+```
+AND($Profile.Name != 'Integration User',$Profile.Name != 'Direct Sales Rep', IsConverted,NOT( INCLUDES( Product__c ,'Opfin') ),   OR(ISBLANK(Product__c),ISBLANK(Merchant_ID__c)))
+```
+
+48.
+```
+Ispickval(Unqualified_Reason__c,"Other") && ISBLANK(Other_Reason__c) && Not(RecordType.DeveloperName = 'Ezetap')
+```
+
+49.
+```
+AND (
+ISPICKVAL(   Status   ,"Converted"),
+ ISBLANK(  FirstName ),
+ $RecordType.Name = "Prime Lead",
+$Profile.Name <> "Integration User",
+$Profile.Name <> "System Administrator",
+OR(
+
+ $User.Rollup_Description__c = 'IF - SAM',
+$User.Rollup_Description__c = 'IF - KAM',
+$User.Rollup_Description__c = 'IF - Startup',
+$User.Rollup_Description__c = 'Hybrid - SAM',
+$User.Rollup_Description__c = 'Hybrid - KAM',
+$User.Rollup_Description__c = 'Hybrid - MM'
+)
+)
+```
+
+50.
+```
+if(AND(OR($User.Id='0056F00000DpkLf',$User.Id='0056F00000Dpgnj',$User.Id='0056F00000Dpgnk',$User.Id='005C5000000Hzkt',$User.Id='0056F00000EOVr5',$User.Id='005C5000000Hltr',$User.Id='0056F00000DpkLe'),(!( ISNEW())),ISCHANGED(Status),ISBLANK(First_Activity_Date__c)),true,false)
+```
+
+51.
+```
+AND(AND(ISPICKVAL(Status, "Working"),
+   INCLUDES(Product__c, "Billme"),
+   ISCHANGED(Status),
+   ISPICKVAL(  PRIORVALUE(Status)  , "Open")
+),OR(
+    ISBLANK(No_of_Stores__c),
+    ISBLANK(TEXT(Category_of_Merchant__c)
+)))
+```
+
+52.
+```
+INCLUDES( Product__c ,'Partnership') && ISNULL(Method__c)&& Not(RecordType.DeveloperName = 'Ezetap')
+```
+
+53.
+```
+AND( $UserRole.RollupDescription!='Automation User',TEXT( Primary_Product__c)='RazorpayPOS', IsConverted ,OR(ISBLANK( Method__c),ISBLANK(Website)))
+```
+
+54.
+```
+AND( ISPICKVAL( Status ,"Qualified"),Pitched__c, Demo_Done__c,Integration__c,  Commercial_Discussion__c, MSA__c)
+```
+
+55.
+```
+ISPICKVAL(Status,'Working')  &&  ISBLANK( Remarks_and_Description__c ) && NOT($Permission.Lead_Validation)&&  Owner:User.UserRole.RollupDescription = 'Partnership' && NOT(RecordType.DeveloperName = 'Ezetap')
+```
+
+56.
+```
+IF(ISPICKVAL( LeadSource , "Merchant Referral") ,  ISBLANK( Referrer_MID__c ) , false) && Not(RecordType.DeveloperName = 'Ezetap')
+```
+
+57.
+```
+AND( ($Profile.Name='Marketing (RazorpayPOS)'),  Text(Status) ='Converted')
+```
+
+58.
+```
+AND(ISPICKVAL( Status__c ,"Pending"), ISNULL( Next_Followup_Date__c ), Not(RecordType.DeveloperName = 'Ezetap'))
+```
+
+59.
+```
+IF(
+    RecordType.DeveloperName = 'Rize_Leads',
+    IF(
+        INCLUDES(Product__c, 'Incorporation'),
+        FALSE,
+        TRUE
+    ),
+    FALSE
+)
+```
+
+60.
+```
+Ispickval( Reason__c ,"Others") && ISBLANK(Unqualified_Other_Reason__c ) && Not(RecordType.DeveloperName = 'Ezetap')
+```
+
+61.
+```
+OR( Directors_With_Existing_DSC__c < 0, Directors_With_Existing_DSC__c > VALUE(TEXT(No_of_director__c)), VALUE(TEXT(No_of_director__c)) > 5 )
+```
+
+62.
+```
+OR(VALUE(LEFT(TEXT( Expected_GMV_with_Decimal__c), FIND(".", TEXT( Expected_GMV_with_Decimal__c )) - 1)) > 9999,
+
+VALUE( TEXT(Expected_GMV_with_Decimal__c)) > 9999
+
+
+)
+```
+
+63.
+```
+AND
+(
+ISPICKVAL(Engagement__c , 'QBR with Executive Sponsor'),
+ISBLANK(Attendee_POC_4__c  ),
+$Profile.Name <> "Integration User",
+NOT(From_LWC__c)
+)
+```
+
+64.
+```
+AND
+(
+ISPICKVAL(Engagement__c  , 'Executive Sponsor Meeting'),
+ISBLANK(Attendee_POC_4__c ),
+$Profile.Name <> "Integration User",
+NOT(From_LWC__c)
+)
+```
+
+65.
+```
+AND
+(
+ISPICKVAL(Engagement__c , 'Follow up Executive Sponsor Meeting'),
+ISBLANK(Attendee_POC_4__c ),
+$Profile.Name <> "Integration User",
+NOT(From_LWC__c)
+)
+```
+
+66.
+```
+AND(
+ISPICKVAL(Engagement__c,''),
+NOT(From_LWC__c)
+)
+```
+
+67.
+```
+AND(
+ISPICKVAL(Engagement__c,'Follow Up Engagement'),
+ Link_Previous_Engagement__c  = null,
+NOT(From_LWC__c)
+)
+```
+
+68.
+```
+AND(
+  Primary_Merchant_POC__c <> null,
+  Primary_Merchant_POC__r.Owner.UserRole.Name = null,
+NOT(From_LWC__c)
+)
+```
+
+69.
+```
+AND(
+Account_Name__c = null,
+NOT(From_LWC__c)
+)
+```
+
+70.
+```
+Owner:User.UserRole.RollupDescription = 'Mid Market'  &&    ISBLANK(Meeting_Notes__c) && NOT($Permission.Lead_Validation)
+```
+
+71.
+```
+AND(
+   Secondary_Merchant_POC__c  <> null,
+   Secondary_Merchant_POC__r.Owner.UserRole.Name = null
+ )
+```
+
+72.
+```
+AND (
+ISPICKVAL( Does_this_match_to_HQL_Criteria__c,'Yes'),
+ISCHANGED( Does_this_match_to_HQL_Criteria__c ),
+!ISPICKVAL(StageName,'Disqualify'),
+!ISPICKVAL( Does_this_match_to_HQL_Criteria__c,'Pending Acknowledgment')
+
+)
+```
+
+73.
+```
+AND  (
+NOT( ISBLANK(BANT_Qualification_Rec__c)),
+ ISPICKVAL( Does_this_match_to_HQL_Criteria__c ,'Yes'),
+ ISCHANGED( StageName ),
+ISPICKVAL(StageName,'Disqualify'),
+$UserRole.RollupDescription <> "Automation User",
+$Profile.Name <> "System Administrator"
+)
+```
+
+74.
+```
+AND (
+NOT( ISBLANK(BANT_Qualification_Rec__c)),
+ISPICKVAL( Does_this_match_to_HQL_Criteria__c ,'No & Disqualify'),
+ISCHANGED( StageName ),
+!ISPICKVAL(StageName,'Disqualify'),
+$UserRole.RollupDescription <> "Automation User"
+
+)
+```
+
+75.
+```
+AND(NOT( ISBLANK(BANT_Qualification_Rec__c)), ISCHANGED( StageName ),!ISPICKVAL(StageName,'Open'),!ISPICKVAL(StageName,'Working') ,ISPICKVAL(Does_this_match_to_HQL_Criteria__c,""),!isnew(),$UserRole.RollupDescription <> "Automation User")
+```
+
+76.
+```
+Is_Prime_Opportunity__c = TRUE && (CloseDate < DATEVALUE(CreatedDate))
+```
+
+77.
+```
+AND
+(
+!ISPICKVAL(StageName , "Open") ,
+!ISPICKVAL(StageName , "Working"),
+ISPICKVAL(PRIORVALUE(Does_this_match_to_HQL_Criteria__c ), "No & Change BANT Type"),
+ISCHANGED( StageName )
+)
+```
+
+78.
+```
+AND(
+ISPICKVAL(PRIORVALUE(Does_this_match_to_HQL_Criteria__c  ), "No & Change BANT Type"),
+OR (
+ISPICKVAL(Does_this_match_to_HQL_Criteria__c, "Pending Acknowledgment"),
+ISPICKVAL(Does_this_match_to_HQL_Criteria__c, "Yes")
+),
+NOT(ISPICKVAL(BANT_Qualification__c  , "HQL"))
+)
+```
+
+79.
+```
+AND(
+OR(
+ISPICKVAL(StageName, "Open"),
+ISPICKVAL(StageName, "Working")
+),
+ISPICKVAL(Does_this_match_to_HQL_Criteria__c, "No & Change BANT Type"),
+OR
+(
+
+ISPICKVAL(BANT_Qualification__c , "HQL"),
+
+ISBLANK(Remarks__c )
+)
+)
+```
+
+80.
+```
+AND( ISCHANGED( StageName ),AND(ISPICKVAL(Type, 'current_account'),AND(ISBLANK( TEXT( CA_Pitched_Partner_Bank__c )) ,  OR(Campaign_Name__c =='ICICI Base_Calling Activity', Campaign_Name__c =='Existing Base Calling Activity'))))
+```
+
+81.
+```
+AND( NOT(ISPICKVAL(StageName, 'Pitched')) ,
+ISPICKVAL(Business_Unit__c, '')) &&
+ RecordType.DeveloperName = "Ezetap"
+```
+
+82.
+```
+AND(
+    ISPICKVAL(Type, 'Current_Account'),
+    Owner_Role__c = 'SME X',
+    OR(
+        ISPICKVAL(StageName, 'Pitched'),
+        ISPICKVAL(StageName, 'Pending Confirmation'),
+        ISPICKVAL(StageName, 'Principal Approval'),
+        ISPICKVAL(StageName, 'Application Received'),
+        ISPICKVAL(StageName, 'Razorpay Processing'),
+        ISPICKVAL(StageName, 'Sent to Bank'),
+        ISPICKVAL(StageName, 'Bank Processing'),
+        ISPICKVAL(StageName, 'CA Opened'),
+        ISPICKVAL(StageName, 'Sales Demo Needed'),
+        ISPICKVAL(StageName, 'Archived'),
+        ISPICKVAL(StageName, 'Disqualify'),
+        ISPICKVAL(StageName, 'Closed Won')
+    ),
+    OR(
+        ISPICKVAL(CA_Pitched_Partner_Bank__c, ''),
+        ISPICKVAL(Variant_Sold__c, ''),
+        ISPICKVAL(Payment_Collected__c, ''),
+        ISBLANK(Amount_Collected__c),
+        ISBLANK(CloseDate)
+    )
+)
+```
+
+83.
+```
+(
+(
+(!Ispickval(StageName , "Open") && !Ispickval(StageName , "Working") && !Ispickval(StageName , "Qualify") )
+&&
+IsChanged(StageName)
+&&
+Ispickval(Type ,"Current_Account")
+&&
+Ispickval(Corporate_Card_Interested__c ,"")
+&&
+!ISNEW()) ||
+(
+(IsChanged(Corporate_Card_Interested__c))
+&&
+(!Ispickval(StageName , "Open") && !Ispickval(StageName , "Working") && !Ispickval(StageName , "Qualify") )
+&&
+Ispickval(Corporate_Card_Interested__c ,"")
+&&
+!ISNEW()
+&&
+Ispickval(Type ,"Current_Account")
+)
+)
+&&
+($Profile.Name != 'Integration User' && $Profile.Name != 'System Administrator')
+
+&&
+!ISCHANGED( OwnerId )
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+84.
+```
+AND(
+  ISPICKVAL(StageName, "Principal Approval"),
+  OR(
+    ISPICKVAL(Payment_Collected__c,''),
+    ISPICKVAL(Variant_Sold__c,''),
+    ISBLANK(Amount_Collected__c)
+  ),
+  Ispickval( Type ,"Current_Account"),  $Profile.Name != 'Integration User' ,
+$Profile.Name != 'System Administrator'
+)
+```
+
+85.
+```
+AND(
+ISPICKVAL(Type, "Incorporation"),
+TEXT(PRIORVALUE(CA_Interested__c)) = 'Yes',
+TEXT(CA_Interested__c) <> 'Yes'
+)
+```
+
+86.
+```
+AND( ISCHANGED( StageName ) ,  AND( NOT(ISPICKVAL( StageName ,"Open")) , NOT(ISPICKVAL( StageName ,"Working")) ) ,   ISBLANK( TEXT( CA_Pitched_Partner_Bank__c ) ),  ISPICKVAL( Type , "Current_Account"), RecordType.DeveloperName = 'Ezetap'   )
+```
+
+87.
+```
+AND(
+    ISCHANGED( StageName ) ,
+    OR(
+        ISPICKVAL( PRIORVALUE( StageName ) ,"Pitched") ,
+        ISPICKVAL( PRIORVALUE( StageName ) , "Principal Approval")
+    ) ,
+    AND(
+        NOT( ISPICKVAL( StageName , "Archived") ) ,
+        NOT( ISPICKVAL( StageName , "Closed Lost") ),
+        NOT( ISPICKVAL( StageName , "Principal Approval") )
+    ),
+    OR(
+        ISNULL( CX_CA_Count__c ) ,
+        ISBLANK(CX_CA_Count__c),  CX_CA_Count__c  = 0
+    ),
+    ISPICKVAL( Type , "Current_Account"),
+  RecordType.DeveloperName = 'Ezetap'
+)
+```
+
+88.
+```
+Ispickval( Type ,"Current_Account") && ISBLANK(Campaign_Name__c) && LastModifiedBy.FirstName != 'Integration'
+```
+
+89.
+```
+($UserRole.RollupDescription != "")
+&&
+((ISCHANGED ( Type ) || ISCHANGED( CloseDate ))
+&&
+ISPICKVAL (StageName, "Closed Won"))
+&&
+Transacting__c = true
+&&
+!ISNEW()
+&&
+(LastModifiedBy.Profile.Name != "Integration User" || LastModifiedBy.Profile.Name != "System Administrator")
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+90.
+```
+(($UserRole.RollupDescription = "SME Sales" || $UserRole.RollupDescription = "CSM")
+&&
+(ISPICKVAL ( Type , "RazorpayX")
+||
+ISPICKVAL ( Type , "Current_Account"))
+&&
+(ISCHANGED ( StageName ))
+&&
+!ISPICKVAL(StageName, "Open"))
+&&
+!ISCHANGED (  OwnerId )
+&&
+ISNULL( LastActivityDate )
+&&
+!ISNEW()
+&&
+(LastModifiedBy.Profile.Name != "Integration User" || LastModifiedBy.Profile.Name != "System Administrator")
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+91.
+```
+($UserRole.RollupDescription != "")
+&&
+(ISCHANGED ( StageName )
+&&
+ISPICKVAL(PRIORVALUE(StageName), "Closed Won")
+&&
+!ISPICKVAL(StageName, "Closed Won"))
+&&
+Transacting__c = true
+&&
+!ISNEW()
+&&
+(LastModifiedBy.Profile.Name != "Integration User" || LastModifiedBy.Profile.Name != "System Administrator")
+&&
+( RecordType.DeveloperName = 'Ezetap')
+```
+
+92.
+```
+ISNULL(Methods__c) &&
+ Upsell__c = True &&
+!ISPICKVAL( Type , 'Opfin') &&
+ (LastModifiedBy.FirstName != 'Arpitha' || LastModifiedBy.FirstName != 'Integration') &&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+93.
+```
+RecordType.Name = 'Corporate Cards'
+&&
+ISBLANK(Limit_Issued_by_the_Bank__c)
+&&
+(TEXT(StageName) = 'Closed Won')
+&& ISCHANGED(StageName)
+```
+
+94.
+```
+RecordType.Name = 'Corporate Cards'
+&&
+(ISBLANK(TEXT( Service_Provider__c )) || ISBLANK(TEXT( Platform_website_hosted_on__c)) || ISBLANK(TEXT(Required_Documents_Available__c))|| ISBLANK(TEXT( Corporate_Card_Interested__c)) || ISBLANK(Use_Case__c))
+&&
+(TEXT(StageName) = 'Processing' || TEXT(StageName) = 'Sent to Bank' || TEXT(StageName) = 'Closed Won' || TEXT(StageName) = 'Approved')
+```
+
+95.
+```
+AND(CloseDate >= Today() ,$UserRole.RollupDescription <> "Automation User" , isnew(),TEXT(Type_of_Opportunity__c) ='Existing Closed Won')
+```
+
+96.
+```
+AND(CloseDate < Today() ,$UserRole.RollupDescription <> "Automation User" , isnew(),TEXT(Type_of_Opportunity__c)='New')
+```
+
+97.
+```
+OR(
+ ISPICKVAL( StageName , 'Closed Won'),
+ ISPICKVAL( Loss_Reason__c,'' )
+)
+```
+
+98.
+```
+(ISPICKVAL( StageName , 'Pitched')||  ISPICKVAL( StageName , 'Principal Approval') ||  ISPICKVAL( StageName , 'Negotiation')||ISPICKVAL( StageName , 'Activated / Agreement Signed')||ISPICKVAL( StageName , 'Submitted / Commercial Agreed')||ISPICKVAL( StageName , 'Closed Won')||ISPICKVAL( StageName , 'Closed Lost')) && ISPICKVAL( Confidence_Level__c ,'')&&  ISPICKVAL(Type , 'Opfin')
+```
+
+99.
+```
+IF(AND(
+Account.Owner_Role__c != 'Automation User',
+OR($User.Id  = '005OX00000CdHtr' ,$User.Id  ='005C5000000K3s1'),
+ISCHANGED( OwnerId ))
+, true,
+IF(AND(
+NOT(ISPICKVAL(Business_Unit__c, "Cross Border")),Account.Owner_Role__c = 'Automation User',OR($User.Id  = '005OX00000CdHtr' ,$User.Id  ='005C5000000K3s1')),
+ true, false) )
+```
+
+100.
+```
+AND (
+NOT( ISBLANK(BANT_Qualification_Rec__c)),
+ISPICKVAL( StageName,'Disqualify'),
+ISCHANGED( Does_this_match_to_HQL_Criteria__c ),
+$UserRole.RollupDescription <> "Automation User",
+$Profile.Name <> "System Administrator"
+
+)
+```
+
+101.
+```
+$UserRole.RollupDescription <> "Automation User" && $Profile.Name <> "Payroll Onboarding/Implementation Team" &&(Ispickval (  StageName , "Closed Won") || Ispickval (  StageName , "Activated / Agreement Signed")) &&
+Ispickval(  Type ,"Opfin") &&
+((ISBLANK(  No_of_Employees__c  ))|| (ISBLANK( Activation_Date__c ))|| ISPICKVAL( Onboarding_Type__c ,''))
+```
+
+102.
+```
+NOT(Ispickval (  StageName , "Open")) &&
+Ispickval(  Type ,"Opfin") &&
+(ISBLANK(  No_of_Employees__c  ))&&
+!ISCHANGED ( OwnerId )
+```
+
+103.
+```
+(
+(
+(!Ispickval(StageName , "Open") && !Ispickval(StageName , "Working") )
+&&
+IsChanged(StageName)
+&&
+Ispickval( Type ,"Opfin")
+&&
+(ISBlank(No_of_Employees__c) || Existing_Payroll_System__c = "")
+&&
+!ISNEW() )
+||
+(
+(IsChanged(No_of_Employees__c) || IsChanged(Existing_Payroll_System__c) )
+&&
+(!Ispickval(StageName , "Open") && !Ispickval(StageName , "Working") )
+&&
+!ISNEW()
+&&
+(ISBlank(No_of_Employees__c) || Existing_Payroll_System__c = "")
+&&
+Ispickval( Type ,"Opfin")
+)
+)
+&&
+(LastModifiedBy.Profile.Name != "Integration User" && LastModifiedBy.Profile.Name != "System Administrator")
+&&
+!ISCHANGED( OwnerId )
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+104.
+```
+((Ispickval (  StageName , "Integration Underway")) || (Ispickval (  StageName , "Activated / Agreement Signed"))) &&
+Ispickval(  Type ,"Opfin") &&
+(ISBLANK( Existing_Payroll_System__c ) || ISBLANK( No_of_Employees__c ) ||  ISBLANK(Accounting_Tool__c) || ISBLANK ( Activation_Date__c )  )
+&&
+!ISCHANGED( OwnerId )
+```
+
+105.
+```
+CONTAINS( Owner.UserRole.Name   , 'NIT' )  && ( ISBLANK( Use_Case__c ) ||   ISPICKVAL( LeadSource ,'')   ||  ISBLANK( Current_CA__c )  ||   ISPICKVAL( CA_Pitched_Partner_Bank__c ,'')  )
+```
+
+106.
+```
+AND(if(AND(OR($User.Id='0056F00000DpkLf',$User.Id='0056F00000Dpgnj',$User.Id='0056F00000Dpgnk',$User.Id='005C5000000Hzkt',$User.Id='0056F00000EOVr5',$User.Id='005C5000000Hltr',$User.Id='0056F00000DpkLe'),(!( ISNEW())),ISCHANGED(StageName),ISBLANK(First_Activity_Date__c)),true,false),
+ RecordType.DeveloperName = 'Ezetap')
+```
+
+107.
+```
+AND(ISPICKVAL( StageName ,'Closed Won'),not(ISPICKVAL(  COD__c,'')),not(ISPICKVAL(  RTO_insurance__c ,'' )),RecordTypeId="012C50000004IXRIA2",not( Shipping_Provider__c =''),not( Historical_data__c =''), RecordType.DeveloperName = 'Ezetap')
+```
+
+108.
+```
+AND(ISPICKVAL( StageName ,'Closed Lost'),ISPICKVAL( Sub_Stage__c,'Others' ),RecordTypeId="012C50000004IXRIA2",not(Reason__c!=''), RecordType.Name = 'Ezetap')
+```
+
+109.
+```
+AND (
+ $Profile.Name = 'Enterprise Hunting Profile',
+OR( ISPICKVAL( StageName , 'Closed Won'), ISPICKVAL( StageName , 'Closed Lost')),
+ ISBLANK( Methods__c ),
+ ISPICKVAL( Type , 'Payment Gateway')
+
+)
+```
+
+110.
+```
+AND(
+  RecordTypeId ='012OX000000qLy2YAE',
+ ISPICKVAL( Disqualify_Reason__c , 'Others'),
+ ISBLANK( Other_Reason__c )
+)
+```
+
+111.
+```
+$UserRole.RollupDescription <> "Automation User" &&
+    ISPICKVAL(Type, 'Opfin') &&
+      (  ISPICKVAL(StageName, 'Pitched') ||
+        ISPICKVAL(StageName, 'Principal Approval') ||
+        ISPICKVAL(StageName, 'Negotiation') ||
+        ISPICKVAL(StageName, 'Activated / Agreement Signed') ||
+        ISPICKVAL(StageName, 'Commercial Approved') ||
+        ISPICKVAL(StageName, 'On Hold') ||
+        ISPICKVAL(StageName, 'Invoice Paid') ||
+        ISPICKVAL(StageName, 'Closed Won')
+    )
+    && No_of_Employees__c > 100 &&
+        (ISBLANK(TEXT(Existing_Vendor__c))||
+        ISBLANK(TEXT(Existing_Vendor_2__c))||
+        ISBLANK(City__c)||
+        ISBLANK(State__c)||
+        ISBLANK(Remarks__c)
+)
+```
+
+112.
+```
+$UserRole.RollupDescription <> "Automation User" &&
+    ISPICKVAL(Type, 'Opfin') &&
+      (
+        ISPICKVAL(StageName, 'Principal Approval') ||
+        ISPICKVAL(StageName, 'Negotiation') ||
+        ISPICKVAL(StageName, 'Activated / Agreement Signed') ||
+        ISPICKVAL(StageName, 'Commercial Approved') ||
+        ISPICKVAL(StageName, 'On Hold') ||
+        ISPICKVAL(StageName, 'Invoice Paid') ||
+        ISPICKVAL(StageName, 'Closed Won')
+    )&&
+        ISBLANK(Modules__c)
+```
+
+113.
+```
+AND($UserRole.RollupDescription <> "Automation User" ,
+ISPICKVAL( Type ,'Opfin'),ISPICKVAL( StageName , 'Commercial Approved'), (ISBLANK(  Subscription_pricing__c )))
+```
+
+114.
+```
+AND(
+$UserRole.RollupDescription <> "Automation User" ,
+ISPICKVAL( Type ,'Opfin'),
+ISPICKVAL( StageName , 'Invoice Paid'),
+OR(ISPICKVAL( Subscription__c ,''),ISBLANK(  Expected_Payment_Date__c  ), ISBLANK( Org_Id__c )  )
+)
+```
+
+115.
+```
+AND($UserRole.RollupDescription <> "Automation User" ,ISPICKVAL( Type ,'Opfin'),ISPICKVAL( StageName , 'On Hold'), ISBLANK(  NextStep))
+```
+
+116.
+```
+AND($UserRole.RollupDescription <> "Automation User" ,ISPICKVAL( Type ,'Opfin'),ISPICKVAL( StageName , 'Pitched'), OR(ISBLANK(No_of_Employees__c),ISPICKVAL(  Confidence_Level__c ,'')))
+```
+
+117.
+```
+IF(AND(AND($Profile.Name != 'Integration User',$Profile.Name!='System Administrator', Account.Owner.UserRole.Name != null), CONTAINS( $Label.Managed_User_Role ,Account.Owner.UserRole.Name) ),IF(AND(Account.OwnerId <> $User.Id, Account.Owner.Profile.Name != 'Integration User'),IF( AND(CONTAINS( $Label.Managed_Products,  TEXT(Type)),Assigned_to_Capital__c <> true,NOT(ISNEW())),true,false),false),false)
+```
+
+118.
+```
+if( $Profile.Name!='Integration User' && $Profile.Name!='System Administrator',
+CASE(StageName,
+"Open", 1,
+"Working", 2,
+"Qualify", 3,
+"Agreement Signed", 4,
+"Onboarding", 5,
+"Closed Won", 6,
+"Closed Lost", 7,
+0)
+<
+CASE(PRIORVALUE(StageName),
+"Open", 1,
+"Working", 2,
+"Qualify", 3,
+"Agreement Signed", 4,
+"Onboarding", 5,
+"Closed Won", 6,
+"Closed Lost", 7,
+0)
+,false)
+```
+
+119.
+```
+ISPICKVAL(StageName , 'Closed Lost')  &&  ISPICKVAL( Loss_Reason__c ,'Other') && ISPICKVAL ( Win_Loss_Sub_Reason__c ,'Fill up other reason [Mandatory Field]') &&  ISBLANK( Other_Closed_Reason__c ) &&  RecordTypeId = '012C50000004KRr'
+```
+
+120.
+```
+AND($UserRole.RollupDescription <> "Automation User" , $Profile.Name <> "Payroll Onboarding/Implementation Team" , ISPICKVAL( Type ,'Opfin'),ISBLANK( Other_Reason__c ) , OR(ISPICKVAL(  Sub_Stage__c  ,'Others'),ISPICKVAL(  Loss_Reason__c  ,'Other'),ISPICKVAL(  Win_Loss_Sub_Reason__c ,'Other'),INCLUDES(Modules__c, 'Other')))
+```
+
+121.
+```
+AND(Ispickval( Loss_Reason__c,"Other") && ISBLANK(Other_Reason__c), RecordType.DeveloperName = 'Ezetap')
+```
+
+122.
+```
+IF(
+   ISPICKVAL(
+            StageName, 'Closed Lost'),
+            ISCHANGED( OwnerId),
+            false)
+```
+
+123.
+```
+ISNEW()= FALSE
+&&
+$UserRole.RollupDescription!='Automation User'
+&&
+RecordType.DeveloperName ='Ezetap'
+&&
+ISBLANK(Account.ParentId)
+```
+
+124.
+```
+AND(IF ( $Profile.Name= 'Direct Sales Rep' && Account.ParentId = null, true, false), RecordType.DeveloperName = 'Ezetap')
+```
+
+125.
+```
+AND (
+NOT( ISBLANK(BANT_Qualification_Rec__c)),
+ISPICKVAL( Does_this_match_to_HQL_Criteria__c ,'Pending Acknowledgment'),
+ISCHANGED( StageName ),
+!ISPICKVAL(StageName,'Working'),
+$UserRole.RollupDescription <> "Automation User"
+)
+```
+
+126.
+```
+AND(ISPICKVAL(  StageName  ,'Dropped'), ISBLANK(  Competitor_Details__c  ),RecordType.DeveloperName = 'Ezetap')
+```
+
+127.
+```
+AND (
+OR (
+
+ISPICKVAL( StageName , "Principal Approval"),
+
+ISPICKVAL(  Variant_Sold__c  , "" ))
+)
+```
+
+128.
+```
+AND(
+    NOT(ISNEW()),
+    $Profile.Name != 'System Administrator',
+    $Profile.Name != 'Integration User',
+    OR(
+RecordType.DeveloperName='GTM',RecordType.DeveloperName='Other_Products',RecordType.DeveloperName='Master',RecordType.DeveloperName='CX_PG',RecordType.DeveloperName='Magic_Checkout',RecordType.DeveloperName='Other_Products_DS',RecordType.DeveloperName='PG_Other_Products')
+,
+    ISCHANGED(StageName),
+    OR(
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Onboarding"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Submitted / Commercial Agreed"),
+               ISPICKVAL(StageName, "Activated / Agreement Signed"),
+               ISPICKVAL(StageName, "Negotiation"),
+               ISPICKVAL(StageName, "Commercial Approved"),
+               ISPICKVAL(StageName, "Agreement Signed")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Activated"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Submitted / Commercial Agreed")
+
+               )
+
+
+    ),
+    AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Pricing Negotiation"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open")
+
+
+               )
+    ),
+    AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Principal Approval"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pricing Negotiation")
+
+
+               )
+    ),
+    AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Closed Won"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Submitted / Commercial Agreed"),
+               ISPICKVAL(StageName, "Activated / Agreement Signed"),
+               ISPICKVAL(StageName, "Negotiation"),
+               ISPICKVAL(StageName, "Commercial Approved"),
+               ISPICKVAL(StageName, "Agreement Signed"),
+               ISPICKVAL(StageName, "Onboarding"),
+               ISPICKVAL(StageName, "Activated"),
+               ISPICKVAL(StageName, "Pricing Negotiation"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Closed Lost")
+
+               )
+        )
+))
+```
+
+129.
+```
+AND(
+	$Profile.Name <> "Integration User",
+	$Profile.Name <> "rzprizeform Profile",
+	$Profile.Name <> "rzpsfapi Site Guest User",
+	RecordType.Name=='RIZE Opportunity',
+	ISCHANGED( MileStone__c ),
+	TEXT(MileStone__c) <> "Document Rejected",
+	TEXT(MileStone__c) <> "Document Link Shared",
+	TEXT(MileStone__c) <> "Document Submitted",
+        TEXT(MileStone__c) <> "Document Approved",
+	TEXT(MileStone__c) <> "None",
+
+	CASE( MileStone__c ,
+		"Name Approval", 1,
+		"Digital Signature", 2,
+		"Incorporation Form Upload", 3,
+		"Pending", 4,
+		"Approved", 5,
+		"MCA Documents Uploaded", 6,
+		"Email Sent to Client", 7,
+		0
+	)
+	<>
+	CASE(PRIORVALUE(MileStone__c),
+
+		"Name Approval", 1,
+		"Digital Signature", 2,
+		"Incorporation Form Upload", 3,
+		"Pending", 4,
+		"Approved", 5,
+		"MCA Documents Uploaded", 6,
+		"Email Sent to Client", 7,
+		0
+	)
+	+ 1
+)
+```
+
+130.
+```
+if( RecordType.Name=='RIZE Opportunity' && $Profile.Name!='Integration User' && $Profile.Name <> "rzprizeform Profile" && $Profile.Name <> "rzpsfapi Site Guest User",
+CASE(StageName,
+"Qualified", 1,
+"Active", 2,
+"Onboarding Initiated", 3,
+"Activated", 4,
+0)
+<
+CASE(PRIORVALUE(StageName),
+"Qualified", 1,
+"Active", 2,
+"Onboarding Initiated", 3,
+"Activated", 4,
+0)
+,false)
+```
+
+131.
+```
+if( RecordType.Name=='RIZE Opportunity' &&
+$Profile.Name <> "System Administrator" &&
+$Profile.Name!='Integration User' &&
+$Profile.Name <> "rzprizeform Profile" &&
+$Profile.Name <> "rzpsfapi Site Guest User" &&
+$Profile.Name <> "rizeincorporation Profile" &&
+$Profile.Name <> "rizeincorporation Site Guest User",
+CASE(StageName,
+"Open", 1,
+"Working", 2,
+"Qualify", 3,
+"Agreement Signed", 4,
+"Onboarding", 5,
+"Closed Won", 6,
+"Closed Lost", 7,
+0)
+<
+CASE(PRIORVALUE(StageName),
+"Open", 1,
+"Working", 2,
+"Qualify", 3,
+"Agreement Signed", 4,
+"Onboarding", 5,
+"Closed Won", 6,
+"Closed Lost", 7,
+0)
+,false)
+```
+
+132.
+```
+AND(
+$Profile.Name <> "Integration User",
+$Profile.Name <> "rzprizeform Profile",
+$Profile.Name <> "rzpsfapi Site Guest User",
+RecordType.Name=="RIZE Opportunity",
+ISCHANGED(StageName),
+TEXT(StageName) <> "Closed Lost",
+TEXT(StageName) <> "Open",
+TEXT(StageName) <> "Working",
+TEXT(StageName) <> "Closed",
+CASE( StageName ,
+"Qualify", 1,
+"Agreement Signed", 2,
+"Onboarding", 3,
+"Closed Won", 4,
+
+
+0)
+<>
+CASE(PRIORVALUE(StageName),
+
+"Qualify", 1,
+"Agreement Signed", 2,
+"Onboarding", 3,
+"Closed Won", 4,
+0
+)
++ 1
+)
+```
+
+133.
+```
+AND(
+$Profile.Name <> "Integration User",
+$Profile.Name <> "rzprizeform Profile",
+$Profile.Name <> "rzpsfapi Site Guest User",
+RecordType.Name=='RIZE Opportunity',
+ISCHANGED(StageName),
+NOT(ISCHANGED(Sub_Stage__c)),
+TEXT(Sub_Stage__c) == "On Hold"
+)
+```
+
+134.
+```
+AND(
+$Profile.Name <> "Integration User",
+$Profile.Name <> "rzprizeform Profile",
+$Profile.Name <> "rzpsfapi Site Guest User",
+RecordType.Name=='RIZE Opportunity',
+ISCHANGED( Sub_Stage__c ) ,
+TEXT(Sub_Stage__c) <> "Connected",
+TEXT(Sub_Stage__c) <> "Not Connected",
+TEXT(Sub_Stage__c) <> "On Hold",
+TEXT(Sub_Stage__c) <> "Under Assessment",
+CASE( Sub_Stage__c ,
+
+"Qualified", 1,
+"Active", 2,
+"Onboarding Initiated", 3,
+"Activated", 4,
+0)
+<>
+CASE(PRIORVALUE(Sub_Stage__c),
+
+
+"Qualified", 1,
+"Active", 2,
+"Onboarding Initiated", 3,
+"Activated", 4,
+0
+)
++ 1
+)
+```
+
+135.
+```
+RecordType.Name = 'S2P'
+&&
+ $Profile.Name != 'System Administrator'
+&&
+ISBLANK(Methods__c)&&
+(TEXT(StageName) = 'Negotiation' || TEXT(StageName) = 'Onboarding' || TEXT(StageName) = 'Closed Won' || TEXT(StageName) = 'Evaluation' || TEXT(StageName) = 'SAL' || TEXT(StageName) = 'Closed Won')
+```
+
+136.
+```
+RecordType.Name = 'S2P'
+&&
+ $Profile.Name != 'System Administrator'
+&&
+(TEXT(Rzp_VA_CA__c) = NULL || ISBLANK((Existing_Bank_Account__c)) || ISBLANK(TEXT(ERP__c))) &&
+(TEXT(StageName) = 'Negotiation' || TEXT(StageName) = 'Onboarding' || TEXT(StageName) = 'Demo Completed' || TEXT(StageName) = 'Closed Won' || TEXT(StageName) = 'Evaluation' || TEXT(StageName) = 'SAL' || TEXT(StageName) = 'Closed Won')
+```
+
+137.
+```
+RecordType.Name = 'S2P' &&
+ $Profile.Name != 'System Administrator'
+&&
+TEXT(StageName) = 'Onboarding'
+  &&  (ISBLANK(Go_Live_date__c) || Invoice_No__c = NULL ||  TEXT(Onboarding_Form_Filled__c) = NULL)
+```
+
+138.
+```
+RecordType.Name = 'S2P'
+&&
+ $Profile.Name != 'System Administrator'
+&&
+(TEXT(StageName) != 'Open' && TEXT(StageName) != 'Working')
+&&
+(CloseDate = NULL ||   TEXT(No_of_invoices_processed_per_month__c) = NULL ||  TEXT(No_of_vendors__c) = NULL )
+```
+
+139.
+```
+AND(INCLUDES( Methods__c , "Cardless EMI"), TEXT(Service_Provider__c) !="Axio",TEXT(Service_Provider__c)!="Fibe",TEXT(Service_Provider__c)!="Flexmoney",TEXT(Service_Provider__c)!="Liquiloans",$UserRole.RollupDescription <> "Automation User",ischanged(Service_Provider__c))
+```
+
+140.
+```
+AND(INCLUDES( Methods__c , "Paylater"),TEXT(Service_Provider__c)!="Simpl",TEXT(Service_Provider__c)!="Lazypay",TEXT(Service_Provider__c)!="Amazon Pay Later",$UserRole.RollupDescription <> "Automation User",ischanged(Service_Provider__c))
+```
+
+141.
+```
+AND(!INCLUDES( Methods__c , "Paylater"),!INCLUDES( Methods__c , "Cardless EMI"),NOT( ISPICKVAL( Service_Provider__c ,"")), ISPICKVAL(Type,"Affordability Widget"),$UserRole.RollupDescription <> "Automation User",ischanged(Service_Provider__c) )
+```
+
+142.
+```
+AND(!INCLUDES( Methods__c , "Credit Card"),!INCLUDES( Methods__c , "Debit Card"), !ISPICKVAL( Service_Provider__c ,""), ISPICKVAL(Type,"Payment Gateway"),$UserRole.RollupDescription <> "Automation User",ischanged(Service_Provider__c))
+```
+
+143.
+```
+AND(
+    NOT(ISNEW()),
+    $Profile.Name != 'System Administrator',
+    $Profile.Name != 'Integration User',
+    OR(
+       RecordType.DeveloperName='GTM',RecordType.DeveloperName='Other_Products',RecordType.DeveloperName='Master',RecordType.DeveloperName='CX_PG',RecordType.DeveloperName='Magic_Checkout',RecordType.DeveloperName='Other_Products_DS',RecordType.DeveloperName='PG_Other_Products')
+    ,
+    ISCHANGED(StageName),
+    OR(
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Working"),
+           ISPICKVAL(StageName, "Open")
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Pitched"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Qualify"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Principal Approval"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Negotiation"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Commercial Approved"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Negotiation")
+               )
+        ),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Agreement Signed"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Negotiation"),
+               ISPICKVAL(StageName, "Commercial Approved")
+               )),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Submitted / Commercial Agreed"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval")
+               )),
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Activated / Agreement Signed"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Submitted / Commercial Agreed")
+               ))
+        ))
+```
+
+144.
+```
+AND(
+$UserRole.RollupDescription <> "Automation User" ,
+ISPICKVAL( Type ,'Other_Products'),
+ISPICKVAL( StageName , 'Commercial Approved'),ISNULL(Org_Id__c) )
+```
+
+145.
+```
+AND (
+
+ISCHANGED( Does_this_match_to_HQL_Criteria__c ),
+!ISPICKVAL(StageName,'Disqualify'),
+!ISPICKVAL(StageName,'Working'),
+!ISPICKVAL(StageName,'Open'),
+$Profile.Name <> "Integration User",
+$Profile.Name <> "System Administrator",
+isnew()
+
+)
+```
+
+146.
+```
+($UserRole.RollupDescription = "SME X")
+&&
+ISPICKVAL( CA_MAB_Details__c, "" )
+&&
+ISPICKVAL (  Type , "Current_Account")
+&&
+(ISCHANGED ( StageName )
+&&
+ISPICKVAL(StageName, "Principal Approval"))
+&&
+!ISNEW()
+&&
+(LastModifiedBy.Profile.Name != "Integration User" || LastModifiedBy.Profile.Name != "System Administrator")
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+147.
+```
+ISNULL(Competitor_Name__c)
+&&
+$UserRole.RollupDescription = "Direct Sales"
+&&
+!ISNEW()
+&&
+!ISCHANGED ( Owner_Role__c )
+&&
+!ISPICKVAL( Type , 'Current_Account')
+&&
+!ISPICKVAL( Type , 'Payout_Link')
+&&
+!ISPICKVAL( Type , 'Vendor_Payout')
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+148.
+```
+(ISBLANK(M2_Projection_Cr__c)|| ISBLANK(M1_Projection_Cr__c)|| ISBLANK(M3_Projection_Cr__c))
+&&
+$UserRole.RollupDescription = "Direct Sales"
+&&
+!ISNEW()
+&&
+!ISCHANGED ( Owner_Role__c )
+&&
+!ISPICKVAL(StageName, "Closed Lost")
+&&
+!ISPICKVAL( Type , 'Current_Account')
+&&
+!ISPICKVAL( Type , 'Payout_Link')
+&&
+!ISPICKVAL( Type , 'Vendor_Payout')
+&&
+ RecordType.DeveloperName = 'Ezetap'
+```
+
+149.
+```
+(Ispickval (  StageName , "Submitted / Commercial Agreed") ||
+Ispickval (  StageName , "Activated / Agreement Signed") ||
+Ispickval (  StageName , "Closed Won") ||
+Ispickval (  StageName , "Closed Lost"))
+&&
+Ispickval( Type ,"Current_Account")
+&&
+Ispickval(  CA_Reasons__c, "" )
+&&
+$UserRole.RollupDescription = 'Growth'
+&&
+!ISCHANGED( OwnerId )
+&&
+!ISNEW()
+&&
+(LastModifiedBy.Profile.Name != "Integration User" || LastModifiedBy.Profile.Name != "System Administrator")
+```
+
+150.
+```
+AND(
+    ISPICKVAL(Company_Type__c, "Private Limited Company (Pvt. Ltd.)")
+    || ISPICKVAL(Company_Type__c, "Limited Liability Partnership (LLP)"),
+
+    OR(
+        Directors_With_Existing_DSC__c < 0,
+        Directors_With_Existing_DSC__c > VALUE(TEXT(No_of_director__c)),
+        VALUE(TEXT(No_of_director__c)) > 5
+    )
+)
+```
+
+151.
+```
+AND(
+    NOT(ISNEW()),
+    $Profile.Name != 'System Administrator',
+    $Profile.Name != 'Integration User',
+    OR(
+RecordType.DeveloperName='GTM',RecordType.DeveloperName='Other_Products',RecordType.DeveloperName='Master',RecordType.DeveloperName='CX_PG',RecordType.DeveloperName='Magic_Checkout',RecordType.DeveloperName='Other_Products_DS',RecordType.DeveloperName='PG_Other_Products')
+,
+    ISCHANGED(StageName),
+    OR(
+        AND(
+            ISPICKVAL(PRIORVALUE(StageName), "Closed Lost"),
+            OR(
+               ISPICKVAL(StageName, "Working"),
+               ISPICKVAL(StageName, "Open"),
+               ISPICKVAL(StageName, "Pitched"),
+               ISPICKVAL(StageName, "Qualify"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Submitted / Commercial Agreed"),
+               ISPICKVAL(StageName, "Activated / Agreement Signed"),
+               ISPICKVAL(StageName, "Negotiation"),
+               ISPICKVAL(StageName, "Commercial Approved"),
+               ISPICKVAL(StageName, "Agreement Signed"),
+               ISPICKVAL(StageName, "Onboarding"),
+               ISPICKVAL(StageName, "Activated"),
+               ISPICKVAL(StageName, "Pricing Negotiation"),
+               ISPICKVAL(StageName, "Principal Approval"),
+               ISPICKVAL(StageName, "Closed Won")
+               )
+
+        )
+
+    )
+)
+```
+
+152.
+```
+AND(( RecordType.DeveloperName ='Ezetap' && IsWon=true),  Account.Onbording__c  =false ,	 TEXT(Account.Business_Types__c)!='Enterprise - BA' )
+```
+
+153.
+```
+NOT( Price_Book__r.IsActive )
+```
+
+154.
+```
+NOT(Product__r.IsActive)
+```
+
+155.
+```
+AND(
+    NOT($Profile.Name = 'System Administrator'),
+    NOT(ISNEW())
+)
+```
+
+156.
+```
+IF( Quote__r.Opportunity.Pricebook2Id!=null, IF(Price_Book_Product__r.Price_Book__c!=Quote__r.Opportunity.Pricebook2Id,true,false), false)
+```
+
+157.
+```
+AND(
+    ISCHANGED(Is_User_Available_For_Allocation__c),
+    NOT(Is_User_Available_For_Allocation__c),
+    ISPICKVAL( Assigned__c , "Yes"),
+    $User.Username = "soubhagyalaxmi.g@razorpay.com"
+)
+```
+
+158.
+```
+IF(
+    AND(
+        TEXT( Status__c ) = "Reject",
+        ISBLANK( Reject_Remarks__c )), True, False
+ )
+```
+
+159.
+```
+IF(  ISNULL( PRIORVALUE( Close_Date__c ) )  , FALSE, TRUE)
+```
+
+160.
+```
+AND(CONTAINS( What_is_required__c ,'https://razorpay.slack.com') , ISNEW())
+```
+
+161.
+```
+IF( Developer_Sign_off__c = FALSE  &&
+    ( ISPICKVAL( Ticket_Status__c ,"Work In Progress") ||
+      ISPICKVAL( Ticket_Status__c ,"Testing") ||
+      ISPICKVAL( Ticket_Status__c ,"Under Deployment") ||
+      ISPICKVAL( Ticket_Status__c ,"Closed")
+    ) &&
+     RecordType.Name = 'Sprint Ticket',
+  TRUE,
+  FALSE
+)
+```
+
+162.
+```
+IF( ISPICKVAL( Requires_change_in_existing_development__c ,'Yes') && ( ISBLANK( If_Yes_Please_elaborate__c )  || If_Yes_Please_elaborate__c = 'N/A'), True, False)
+```
+
+163.
+```
+IF( ISPICKVAL( Request_Category__c ,'Other') &&  ( ISBLANK(Define_Other_Request_Category__c) || Define_Other_Request_Category__c = 'N/A') , TRUE, FALSE)
+```
+
+164.
+```
+IF( $Profile.Name  = 'System Administrator' &&  ISNULL( Picked_Up_Date__c ) &&  NOT( ISPICKVAL( Ticket_Status__c ,'New') )  , TRUE , FALSE)
+```
+
+165.
+```
+IF( ( ISPICKVAL( Ticket_Status__c ,'Under Hold') ||  ISPICKVAL( Ticket_Status__c ,'Rejected') ) &&  ISBLANK( TEXT( Bottlenecks__c ) ) , True, False)
+```
+
+166.
+```
+IF( $Profile.Name  <> 'System Administrator' &&  ISPICKVAL(Request_Category__c, 'Other')  , TRUE , FALSE)
+```
+
+167.
+```
+IF( $Profile.Name  = 'System Administrator' &&  ISNULL(  Requirement_Review_Date__c ) &&  ISPICKVAL(Parked_under__c, 'Product Backlog') && NOT(ISNEW()) , TRUE , FALSE)
+```
+
+168.
+```
+IF( $Profile.Name = 'System Administrator' &&  ISPICKVAL( Sprint_Number__c ,'')  &&  ISPICKVAL(Parked_under__c, 'Product Backlog') && NOT(ISNEW())  , TRUE , FALSE)
+```
+
+169.
+```
+IF( ISPICKVAL( Bottlenecks__c , 'Technical blocker with other Engg team') &&  ISBLANK(Team_Dependent__c) , TRUE, FALSE)
+```
+
+170.
+```
+IF( ISPICKVAL( Bank_Cost_Type__c, "Flat") ,ISBLANK( Bank_Flat_Cost__c ), ISBLANK(  Bank_Percent_Cost__c  ))
+```
+
+171.
+```
+!ISNEW() &&
+     !ISPICKVAL(Payment_Methods__c ,"") &&
+
+      ISCHANGED(Payment_Methods__c)
+```
+
+172.
+```
+AND (AND(ISPICKVAL( Lead_Status__c ,'Converted'), AND ( ISPICKVAL(Channel_Type__c,'Partnership') , OR (ISBLANK( Partner_offer_Payroll_Services__c ),
+
+ISPICKVAL(Vertical_focus_of_Client_firm__c,''),Partner_has_a_dedicated_Payroll_Team__c,ISBLANK(Avg_Employee_Size_Of_Clients_Org__c),ISBLANK(Total_No_Of_Clients_Handling__c)))), $User.Email != 'anuj.jain@razorpay.com')
+```
+
+173.
+```
+if(PRIORVALUE(Lead_Status__c)= 'Converted' || PRIORVALUE(Lead_Status__c)= 'Qualified' || PRIORVALUE(Lead_Status__c)= 'Unqualified',
+true,false)
+```
+
+174.
+```
+(
+  ISPICKVAL(Lead_Status__c, "Qualified") ||
+  ISPICKVAL(Lead_Status__c, "Converted")
+) &&
+ISBLANK(Partner_Location__c)
+```
+
+175.
+```
+AND(
+    TEXT(Lead_Status__c) = "Converted",
+
+    OR(
+        $User.Email = "rohith.john@razorpay.com",
+        $User.Email = "samiksha.gogoi@razorpay.com",
+        $User.Email = "girish.gowdamn@razorpay.com"
+    ),
+
+    OR(
+        ISBLANK(Partner_Type__c),
+        ISPICKVAL(Channel_Type__c, "")
+    )
+)
+```
+
+176.
+```
+if(ISNEW() && (ISBLANK(Lead__c) || Lead__c ==null || ISBLANK(Email__c) || Email__c==null || ISBLANK(Last_Name__c) || Last_Name__c==null || ISBLANK(Company__c) || Company__c==null ),true,false)
+```
+
+177.
+```
+(Ispickval( Unqualified_Reason__c,"Other")) && ISBLANK( Unqualified_Other_Reason__c)
+```
+
+178.
+```
+AND(ISCHANGED(OwnerId) , Subject ='Revamp Pricing' ,  $User.Rollup_Description__c <>'Automation User',$Profile.Name <> 'System Administrator', $User.Email <>  $Label.TaskOwnerChangeExceptionEmail )
+```
+
+179.
+```
+AND(ISCHANGED(ActivityDate), ISPICKVAL(Status,'Completed'))
+```

@@ -118,6 +118,13 @@ func Equal(a, b interface{}) bool {
 		return false
 	}
 
+	// Handle date comparison
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.Equal(tb)
+		}
+	}
+
 	// Handle numeric operations
 	switch x := a.(type) {
 	case uint:
@@ -1379,6 +1386,13 @@ func EqualIn(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
+	// Handle date comparison
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.Before(tb)
+		}
+	}
+
 	// Convert nil values to 0 for numeric comparisons
 	if IsNil(a) {
 		a = 0
@@ -1862,6 +1876,13 @@ func Less(a, b interface{}) bool {
 }
 
 func More(a, b interface{}) bool {
+	// Handle date comparison
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.After(tb)
+		}
+	}
+
 	// Convert nil values to 0 for numeric comparisons
 	if IsNil(a) {
 		a = 0
@@ -2308,6 +2329,13 @@ func More(a, b interface{}) bool {
 }
 
 func LessOrEqual(a, b interface{}) bool {
+	// Handle date comparison
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.Before(tb) || ta.Equal(tb)
+		}
+	}
+
 	// Convert nil values to 0 for numeric comparisons
 	if IsNil(a) {
 		a = 0
@@ -2767,6 +2795,13 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
+	// Handle date comparison
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.After(tb) || ta.Equal(tb)
+		}
+	}
+
 	// Convert nil values to 0 for numeric comparisons
 	if IsNil(a) {
 		a = 0
@@ -3232,6 +3267,8 @@ func Add(a, b interface{}) interface{} {
 	}
 	if IsNil(a) {
 		switch y := b.(type) {
+		case time.Time:
+			return y // nil + date = date
 		case string:
 			return "" + y // nil + string = "" + string (string concatenation)
 		case float32, float64:
@@ -3242,12 +3279,26 @@ func Add(a, b interface{}) interface{} {
 	}
 	if IsNil(b) {
 		switch x := a.(type) {
+		case time.Time:
+			return x // date + nil = date
 		case string:
 			return x + "" // string + nil = string + "" (string concatenation)
 		case float32, float64:
 			return ToFloat64(x) + ToFloat64(b) // float + nil = float + 0.0
 		default:
 			return ToInt(x) + ToInt(b) // numeric + nil = numeric + 0
+		}
+	}
+
+	// Handle date arithmetic: date + number = date + N days
+	if ta, ok := a.(time.Time); ok {
+		if days, ok2 := ToFloat64Safe(b); ok2 {
+			return ta.Add(time.Duration(days * 24 * float64(time.Hour)))
+		}
+	}
+	if tb, ok := b.(time.Time); ok {
+		if days, ok2 := ToFloat64Safe(a); ok2 {
+			return tb.Add(time.Duration(days * 24 * float64(time.Hour)))
 		}
 	}
 
@@ -3639,12 +3690,23 @@ func Subtract(a, b interface{}) interface{} {
 		}
 	}
 	if IsNil(b) {
-		// X - nil: convert based on X's type to preserve precision
-		switch a.(type) {
+		switch x := a.(type) {
+		case time.Time:
+			return x // date - nil = date
 		case float32, float64:
 			return ToFloat64(a) - ToFloat64(b) // float - nil = float - 0.0
 		default:
 			return ToInt(a) - ToInt(b) // numeric - nil = numeric - 0
+		}
+	}
+
+	// Handle date arithmetic: date - date = days, date - number = date - N days
+	if ta, ok := a.(time.Time); ok {
+		if tb, ok2 := b.(time.Time); ok2 {
+			return ta.Sub(tb).Hours() / 24.0 // difference in days as float64
+		}
+		if days, ok2 := ToFloat64Safe(b); ok2 {
+			return ta.Add(time.Duration(-days * 24 * float64(time.Hour)))
 		}
 	}
 
@@ -4497,13 +4559,13 @@ func Multiply(a, b interface{}) interface{} {
 	panic(fmt.Sprintf("invalid operation: %T * %T", a, b))
 }
 
-func Divide(a, b interface{}) float64 {
+func Divide(a, b interface{}) interface{} {
 	// Handle nil values first
 	if IsNil(a) {
 		a = 0
 	}
 	if IsNil(b) {
-		b = 0
+		return nil // division by nil (zero) returns nil
 	}
 
 	// Handle cross-type operations - convert booleans and strings to numbers
@@ -4531,7 +4593,7 @@ func Divide(a, b interface{}) float64 {
 	// Check for division by zero after type conversion
 	bVal := ToFloat64(b)
 	if bVal == 0.0 {
-		return math.Inf(0)
+		return nil // safe: return nil instead of panic
 	}
 
 	// Return the division result
@@ -4572,7 +4634,7 @@ func Modulo(a, b interface{}) interface{} {
 	// Check for modulo by zero after type conversion
 	bVal := ToFloat64(b)
 	if bVal == 0.0 {
-		return math.Inf(0)
+		return nil // safe: return nil instead of panic
 	}
 
 	// For integer operations, return integer result
@@ -4646,4 +4708,62 @@ func Or(a, b interface{}) interface{} {
 		return a
 	}
 	return b
+}
+
+// Concat performs string concatenation, coercing both operands to strings.
+func Concat(a, b interface{}) interface{} {
+	return toStringConcat(a) + toStringConcat(b)
+}
+
+func toStringConcat(v interface{}) string {
+	if IsNil(v) {
+		return ""
+	}
+	switch x := v.(type) {
+	case string:
+		return x
+	case bool:
+		if x {
+			return "true"
+		}
+		return "false"
+	case int:
+		return strconv.Itoa(x)
+	case int8:
+		return strconv.FormatInt(int64(x), 10)
+	case int16:
+		return strconv.FormatInt(int64(x), 10)
+	case int32:
+		return strconv.FormatInt(int64(x), 10)
+	case int64:
+		return strconv.FormatInt(x, 10)
+	case uint:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint64:
+		return strconv.FormatUint(x, 10)
+	case float32:
+		return formatFloat(float64(x))
+	case float64:
+		return formatFloat(x)
+	case time.Time:
+		if x.Hour() == 0 && x.Minute() == 0 && x.Second() == 0 && x.Nanosecond() == 0 {
+			return x.Format("2006-01-02")
+		}
+		return x.Format("2006-01-02 15:04:05")
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+func formatFloat(f float64) string {
+	if f == float64(int64(f)) && !math.IsInf(f, 0) {
+		return strconv.FormatInt(int64(f), 10)
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }

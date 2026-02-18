@@ -266,6 +266,58 @@ func (vm *VM) Run(program *Program, env any) (_ any, err error) {
 			a := vm.pop()
 			vm.push(runtime.Exponent(a, b))
 
+		case OpConcat:
+			b := vm.pop()
+			a := vm.pop()
+			vm.push(runtime.Concat(a, b))
+
+		case OpCallCtx0:
+			out, err := program.ctxFunctions[arg](env)
+			if err != nil {
+				panic(err)
+			}
+			vm.push(out)
+
+		case OpCallCtx1:
+			a := vm.pop()
+			out, err := program.ctxFunctions[arg](env, a)
+			if err != nil {
+				panic(err)
+			}
+			vm.push(out)
+
+		case OpCallCtx2:
+			b := vm.pop()
+			a := vm.pop()
+			out, err := program.ctxFunctions[arg](env, a, b)
+			if err != nil {
+				panic(err)
+			}
+			vm.push(out)
+
+		case OpCallCtx3:
+			c := vm.pop()
+			b := vm.pop()
+			a := vm.pop()
+			out, err := program.ctxFunctions[arg](env, a, b, c)
+			if err != nil {
+				panic(err)
+			}
+			vm.push(out)
+
+		case OpCallCtxN:
+			fn := vm.pop().(CtxFunction)
+			size := arg
+			in := make([]any, size)
+			for i := int(size) - 1; i >= 0; i-- {
+				in[i] = vm.pop()
+			}
+			out, err := fn(env, in...)
+			if err != nil {
+				panic(err)
+			}
+			vm.push(out)
+
 		case OpRange:
 			b := vm.pop()
 			a := vm.pop()

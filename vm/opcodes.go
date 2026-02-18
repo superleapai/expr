@@ -81,6 +81,12 @@ const (
 	OpGroupBy
 	OpSortBy
 	OpSort
+	OpConcat
+	OpCallCtx0
+	OpCallCtx1
+	OpCallCtx2
+	OpCallCtx3
+	OpCallCtxN
 	OpProfileStart
 	OpProfileEnd
 	OpBegin

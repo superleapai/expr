@@ -21,13 +21,14 @@ type Program struct {
 	Arguments []int
 	Constants []any
 
-	source    file.Source
-	node      ast.Node
-	locations []file.Location
-	variables int
-	functions []Function
-	debugInfo map[string]string
-	span      *Span
+	source       file.Source
+	node         ast.Node
+	locations    []file.Location
+	variables    int
+	functions    []Function
+	ctxFunctions []CtxFunction
+	debugInfo    map[string]string
+	span         *Span
 }
 
 // NewProgram returns a new Program. It's used by the compiler.
@@ -54,6 +55,35 @@ func NewProgram(
 		functions: functions,
 		debugInfo: debugInfo,
 		span:      span,
+	}
+}
+
+// NewProgramWithCtx returns a new Program with context functions. It's used by the compiler.
+func NewProgramWithCtx(
+	source file.Source,
+	node ast.Node,
+	locations []file.Location,
+	variables int,
+	constants []any,
+	bytecode []Opcode,
+	arguments []int,
+	functions []Function,
+	ctxFunctions []CtxFunction,
+	debugInfo map[string]string,
+	span *Span,
+) *Program {
+	return &Program{
+		source:       source,
+		node:         node,
+		locations:    locations,
+		variables:    variables,
+		Constants:    constants,
+		Bytecode:     bytecode,
+		Arguments:    arguments,
+		functions:    functions,
+		ctxFunctions: ctxFunctions,
+		debugInfo:    debugInfo,
+		span:         span,
 	}
 }
 
@@ -362,6 +392,24 @@ func (program *Program) DisassembleWriter(w io.Writer) {
 
 		case OpSort:
 			code("OpSort")
+
+		case OpConcat:
+			code("OpConcat")
+
+		case OpCallCtx0:
+			argumentWithInfo("OpCallCtx0", "ctxfunc")
+
+		case OpCallCtx1:
+			argumentWithInfo("OpCallCtx1", "ctxfunc")
+
+		case OpCallCtx2:
+			argumentWithInfo("OpCallCtx2", "ctxfunc")
+
+		case OpCallCtx3:
+			argumentWithInfo("OpCallCtx3", "ctxfunc")
+
+		case OpCallCtxN:
+			argument("OpCallCtxN")
 
 		case OpProfileStart:
 			code("OpProfileStart")

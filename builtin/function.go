@@ -8,11 +8,13 @@ type Function struct {
 	Name      string
 	Fast      func(arg any) any
 	Func      func(args ...any) (any, error)
+	CtxFunc   func(env any, args ...any) (any, error)
 	Safe      func(args ...any) (any, uint, error)
 	Types     []reflect.Type
 	Validate  func(args []reflect.Type) (reflect.Type, error)
 	Deref     func(i int, arg reflect.Type) bool
 	Predicate bool
+	IsCtx     bool
 }
 
 func (f *Function) Type() reflect.Type {
