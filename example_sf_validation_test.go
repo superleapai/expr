@@ -8,6 +8,7 @@ import (
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/internal/testify/assert"
 	"github.com/expr-lang/expr/internal/testify/require"
+	"github.com/expr-lang/expr/vm"
 )
 
 // ---------------------------------------------------------------------------
@@ -341,6 +342,264 @@ func TestInflateEnv_WithExprRun(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Demonstrate how you'd use this in production code (pseudocode in comments)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Multiple validation rules x multiple records (production pattern)
+// ---------------------------------------------------------------------------
+
+func TestE2E_SF_MultipleRules_MultipleRecords(t *testing.T) {
+	// ---------------------------------------------------------------
+	// Step 1: Define validation rules (loaded from DB in production)
+	// ---------------------------------------------------------------
+	type ValidationRule struct {
+		Name       string
+		Formula    string
+		ErrMessage string
+	}
+
+	rules := []ValidationRule{
+		{
+			Name:       "Amount required for Closed Won",
+			Formula:    `AND(ISPICKVAL(StageName, "Closed Won"), ISBLANK(Amount))`,
+			ErrMessage: "Amount is required when Stage is Closed Won",
+		},
+		{
+			Name:       "Email format check",
+			Formula:    `AND(NOT(ISBLANK(Email)), NOT(CONTAINS(Email, "@")))`,
+			ErrMessage: "Email must contain @",
+		},
+		{
+			Name:       "High amount needs manager",
+			Formula:    `AND(Amount > 100000, ISBLANK(Account.Owner.Email))`,
+			ErrMessage: "Deals over 100k require an Account Owner with email",
+		},
+		{
+			Name:       "Stage regression blocked",
+			Formula:    `AND(ISCHANGED("StageName"), CASE(StageName, "Prospecting", 1, "Qualification", 2, "Proposal", 3, "Negotiation", 4, "Closed Won", 5, 0) < CASE(PRIORVALUE("StageName"), "Prospecting", 1, "Qualification", 2, "Proposal", 3, "Negotiation", 4, "Closed Won", 5, 0))`,
+			ErrMessage: "Cannot move stage backwards",
+		},
+		{
+			Name:       "New record must have name",
+			Formula:    `AND(ISNEW(), ISBLANK(Name))`,
+			ErrMessage: "Name is required for new records",
+		},
+	}
+
+	// ---------------------------------------------------------------
+	// Step 2: Extract deps from ALL rules (union of all deps)
+	// ---------------------------------------------------------------
+	allRecord := make(map[string]bool)
+	allRelated := make(map[string]bool)
+	allOld := make(map[string]bool)
+	needsIsNew := false
+	needsTZ := false
+
+	for _, r := range rules {
+		deps, err := expr.ExtractDeps(r.Formula)
+		require.NoError(t, err, r.Name)
+		for _, f := range deps.RecordFields {
+			allRecord[f] = true
+		}
+		for _, f := range deps.RelatedFields {
+			allRelated[f] = true
+		}
+		for _, f := range deps.OldFields {
+			allOld[f] = true
+		}
+		if deps.NeedsIsNew {
+			needsIsNew = true
+		}
+		if deps.NeedsTimezone {
+			needsTZ = true
+		}
+	}
+
+	t.Logf("Union deps — record: %v, related: %v, old: %v, isNew: %v, tz: %v",
+		allRecord, allRelated, allOld, needsIsNew, needsTZ)
+
+	// ---------------------------------------------------------------
+	// Step 3: Pre-compile all rules once (reused across all records)
+	// ---------------------------------------------------------------
+	// We need a sample env for type-checking at compile time.
+	sampleFlat := map[string]any{
+		"Name":                "",
+		"Amount":              float64(0),
+		"StageName":           "",
+		"Email":               "",
+		"Account.Owner.Email": "",
+		"_changed":            map[string]bool{},
+		"_prior":              map[string]any{},
+		"_isNew":              false,
+	}
+	sampleEnv := expr.InflateEnv(sampleFlat)
+
+	type CompiledRule struct {
+		ValidationRule
+		Program *vm.Program
+	}
+	compiled := make([]CompiledRule, len(rules))
+	for i, r := range rules {
+		p, err := expr.Compile(r.Formula,
+			expr.Env(sampleEnv),
+			expr.AllowUndefinedVariables(),
+			expr.WithAllFormulaPacks(),
+		)
+		require.NoError(t, err, "compile %s", r.Name)
+		compiled[i] = CompiledRule{ValidationRule: r, Program: p}
+	}
+
+	// ---------------------------------------------------------------
+	// Step 4: Simulate multiple records (from DB in production)
+	// ---------------------------------------------------------------
+	type Record struct {
+		Label  string
+		Fields map[string]any // flat current values
+		Old    map[string]any // flat prior values (nil if new)
+		IsNew  bool
+	}
+
+	records := []Record{
+		{
+			Label: "Existing deal, stage advanced",
+			Fields: map[string]any{
+				"Name":                "Big Deal",
+				"Amount":              float64(200000),
+				"StageName":           "Negotiation",
+				"Email":               "rep@acme.com",
+				"Account.Owner.Email": "boss@acme.com",
+			},
+			Old:   map[string]any{"StageName": "Proposal"},
+			IsNew: false,
+		},
+		{
+			Label: "New record with blank name",
+			Fields: map[string]any{
+				"Name":                nil,
+				"Amount":              float64(5000),
+				"StageName":           "Prospecting",
+				"Email":               "new@example.com",
+				"Account.Owner.Email": "mgr@example.com",
+			},
+			Old:   nil,
+			IsNew: true,
+		},
+		{
+			Label: "Closed Won missing amount",
+			Fields: map[string]any{
+				"Name":                "Won Deal",
+				"Amount":              nil,
+				"StageName":           "Closed Won",
+				"Email":               "closer@acme.com",
+				"Account.Owner.Email": "boss@acme.com",
+			},
+			Old:   map[string]any{"StageName": "Negotiation"},
+			IsNew: false,
+		},
+		{
+			Label: "Stage regression Negotiation→Qualification",
+			Fields: map[string]any{
+				"Name":                "Regressed Deal",
+				"Amount":              float64(30000),
+				"StageName":           "Qualification",
+				"Email":               "rep@acme.com",
+				"Account.Owner.Email": "boss@acme.com",
+			},
+			Old:   map[string]any{"StageName": "Negotiation"},
+			IsNew: false,
+		},
+		{
+			Label: "Clean record, no errors",
+			Fields: map[string]any{
+				"Name":                "Good Deal",
+				"Amount":              float64(50000),
+				"StageName":           "Proposal",
+				"Email":               "sales@acme.com",
+				"Account.Owner.Email": "owner@acme.com",
+			},
+			Old:   map[string]any{"StageName": "Proposal"},
+			IsNew: false,
+		},
+	}
+
+	// ---------------------------------------------------------------
+	// Step 5: Run all rules against all records, collect errors
+	// ---------------------------------------------------------------
+	type ValidationError struct {
+		RecordLabel string
+		RuleName    string
+		Message     string
+	}
+
+	var errors []ValidationError
+
+	for _, rec := range records {
+		// Build the env for this record.
+		flat := make(map[string]any)
+		for k, v := range rec.Fields {
+			flat[k] = v
+		}
+
+		// Build _changed and _prior from old values.
+		if rec.Old != nil {
+			changed := make(map[string]bool)
+			prior := make(map[string]any)
+			for _, f := range []string{"StageName"} { // only track fields in allOld
+				oldVal, hasOld := rec.Old[f]
+				curVal := rec.Fields[f]
+				prior[f] = oldVal
+				changed[f] = hasOld && oldVal != curVal
+			}
+			flat["_changed"] = changed
+			flat["_prior"] = prior
+		} else {
+			flat["_changed"] = map[string]bool{}
+			flat["_prior"] = map[string]any{}
+		}
+
+		if needsIsNew {
+			flat["_isNew"] = rec.IsNew
+		}
+
+		env := expr.InflateEnv(flat)
+
+		// Evaluate every rule.
+		for _, cr := range compiled {
+			result, err := expr.Run(cr.Program, env)
+			require.NoError(t, err, "%s / %s", rec.Label, cr.Name)
+
+			if result == true {
+				errors = append(errors, ValidationError{
+					RecordLabel: rec.Label,
+					RuleName:    cr.Name,
+					Message:     cr.ErrMessage,
+				})
+			}
+		}
+	}
+
+	// ---------------------------------------------------------------
+	// Step 6: Assert expected validation errors
+	// ---------------------------------------------------------------
+	t.Logf("Validation errors found: %d", len(errors))
+	for _, e := range errors {
+		t.Logf("  [%s] %s: %s", e.RecordLabel, e.RuleName, e.Message)
+	}
+
+	// Expect exactly 3 errors:
+	require.Len(t, errors, 3)
+
+	// Record "New record with blank name" → "New record must have name"
+	assert.Equal(t, "New record with blank name", errors[0].RecordLabel)
+	assert.Equal(t, "New record must have name", errors[0].RuleName)
+
+	// Record "Closed Won missing amount" → "Amount required for Closed Won"
+	assert.Equal(t, "Closed Won missing amount", errors[1].RecordLabel)
+	assert.Equal(t, "Amount required for Closed Won", errors[1].RuleName)
+
+	// Record "Stage regression" → "Stage regression blocked"
+	assert.Equal(t, "Stage regression Negotiation→Qualification", errors[2].RecordLabel)
+	assert.Equal(t, "Stage regression blocked", errors[2].RuleName)
+}
 
 func ExampleExtractDeps() {
 	formula := `AND(
