@@ -275,11 +275,16 @@ func calleeName(node ast.Node) string {
 //
 // Non-dotted keys are kept as-is. Keys starting with "_" (like "_changed",
 // "_prior", "_isNew") are kept at the top level for runtime context.
+//
+// When both a flat key (e.g. "convertedoppId") and dotted keys sharing the
+// same prefix (e.g. "convertedoppId.sub_stage__c") exist, the dotted keys
+// take precedence and the flat value is skipped.
 func InflateEnv(flat map[string]any) map[string]any {
 	root := make(map[string]any, len(flat))
+
+	// Pass 1: process dotted keys first so nested maps are established.
 	for key, val := range flat {
 		if !strings.Contains(key, ".") {
-			root[key] = val
 			continue
 		}
 		parts := strings.Split(key, ".")
@@ -289,8 +294,6 @@ func InflateEnv(flat map[string]any) map[string]any {
 				if sub, ok := existing.(map[string]any); ok {
 					m = sub
 				} else {
-					// Conflict: a leaf value already exists at this path segment.
-					// Overwrite with a nested map (last writer wins).
 					sub := make(map[string]any)
 					m[p] = sub
 					m = sub
@@ -302,6 +305,18 @@ func InflateEnv(flat map[string]any) map[string]any {
 			}
 		}
 		m[parts[len(parts)-1]] = val
+	}
+
+	// Pass 2: process flat (non-dotted) keys.
+	// If a nested map already occupies the slot (from dotted keys), skip it.
+	for key, val := range flat {
+		if strings.Contains(key, ".") {
+			continue
+		}
+		if _, ok := root[key]; ok {
+			continue
+		}
+		root[key] = val
 	}
 	return root
 }

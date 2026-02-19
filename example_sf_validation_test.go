@@ -298,6 +298,175 @@ func TestInflateEnv(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Test InflateEnv: flat key + dotted key conflict
+// When both "convertedoppId" (flat) and "convertedoppId.sub_stage__c" (dotted)
+// exist, the flat key must not overwrite the nested submap.
+// ---------------------------------------------------------------------------
+
+func TestInflateEnv_FlatKeyConflictWithDottedKey(t *testing.T) {
+	// Reproduce the reported bug: $User.role.name works but
+	// convertedoppId.sub_stage__c loses its submap when a flat
+	// "convertedoppId" key is also present.
+	flat := map[string]any{
+		"$User.role.name":              "Admin",
+		"convertedoppId":               "006ABC123",
+		"convertedoppId.sub_stage__c":  "Negotiation",
+	}
+
+	env := expr.InflateEnv(flat)
+
+	// $User should be inflated into a nested map.
+	user, ok := env["$User"].(map[string]any)
+	require.True(t, ok, "$User should be a nested map, got %T", env["$User"])
+	role, ok := user["role"].(map[string]any)
+	require.True(t, ok, "$User.role should be a nested map, got %T", user["role"])
+	assert.Equal(t, "Admin", role["name"])
+
+	// BUG: convertedoppId has both a flat value and a dotted child.
+	// Currently InflateEnv may overwrite the nested map with the flat value
+	// (or vice versa) depending on Go map iteration order.
+	cOpp, ok := env["convertedoppId"].(map[string]any)
+	if !ok {
+		// The flat value "006ABC123" overwrote the nested map — this is the bug.
+		t.Fatalf("convertedoppId should be a nested map but got %T (%v)", env["convertedoppId"], env["convertedoppId"])
+	}
+	assert.Equal(t, "Negotiation", cOpp["sub_stage__c"],
+		"convertedoppId.sub_stage__c should be preserved")
+}
+
+func TestInflateEnv_OnlyDottedKeys(t *testing.T) {
+	// When there is NO conflicting flat key, dotted keys should always work.
+	flat := map[string]any{
+		"$User.role.name":             "Admin",
+		"convertedoppId.sub_stage__c": "Negotiation",
+		"convertedoppId.owner.email":  "owner@test.com",
+	}
+
+	env := expr.InflateEnv(flat)
+
+	// $User nested map
+	user, ok := env["$User"].(map[string]any)
+	require.True(t, ok, "$User should be a nested map")
+	role, ok := user["role"].(map[string]any)
+	require.True(t, ok, "$User.role should be a nested map")
+	assert.Equal(t, "Admin", role["name"])
+
+	// convertedoppId nested map
+	cOpp, ok := env["convertedoppId"].(map[string]any)
+	require.True(t, ok, "convertedoppId should be a nested map, got %T", env["convertedoppId"])
+	assert.Equal(t, "Negotiation", cOpp["sub_stage__c"])
+
+	owner, ok := cOpp["owner"].(map[string]any)
+	require.True(t, ok, "convertedoppId.owner should be a nested map")
+	assert.Equal(t, "owner@test.com", owner["email"])
+}
+
+func TestInflateEnv_FlatKeyOverwriteOrder(t *testing.T) {
+	// Run many times to catch non-deterministic map iteration.
+	for i := 0; i < 100; i++ {
+		flat := map[string]any{
+			"convertedoppId":              "006ABC123",
+			"convertedoppId.sub_stage__c": "Negotiation",
+			"convertedoppId.amount":       42.0,
+		}
+
+		env := expr.InflateEnv(flat)
+
+		cOpp, ok := env["convertedoppId"].(map[string]any)
+		if !ok {
+			t.Fatalf("iteration %d: convertedoppId should be a nested map but got %T (%v)",
+				i, env["convertedoppId"], env["convertedoppId"])
+		}
+		assert.Equal(t, "Negotiation", cOpp["sub_stage__c"])
+		assert.Equal(t, 42.0, cOpp["amount"])
+	}
+}
+
+func TestInflateEnv_MultipleDottedPrefixesWithFlatConflict(t *testing.T) {
+	flat := map[string]any{
+		"$User.Email":                    "admin@test.com",
+		"$User.role.name":                "SysAdmin",
+		"$Profile.Name":                  "Admin Profile",
+		"convertedoppId":                 "006ABC",
+		"convertedoppId.sub_stage__c":    "Discovery",
+		"convertedoppId.owner.name":      "John",
+		"Account":                        "001XYZ",
+		"Account.Name":                   "Acme Corp",
+		"Account.Owner.Email":            "acme@test.com",
+	}
+
+	env := expr.InflateEnv(flat)
+
+	// $User — only dotted keys, should always work
+	user, ok := env["$User"].(map[string]any)
+	require.True(t, ok, "$User should be nested map")
+	assert.Equal(t, "admin@test.com", user["Email"])
+	role, ok := user["role"].(map[string]any)
+	require.True(t, ok, "$User.role should be nested map")
+	assert.Equal(t, "SysAdmin", role["name"])
+
+	// $Profile — only dotted keys
+	profile, ok := env["$Profile"].(map[string]any)
+	require.True(t, ok, "$Profile should be nested map")
+	assert.Equal(t, "Admin Profile", profile["Name"])
+
+	// convertedoppId — flat "006ABC" + dotted children
+	cOpp, ok := env["convertedoppId"].(map[string]any)
+	if !ok {
+		t.Fatalf("convertedoppId should be nested map but got %T (%v)",
+			env["convertedoppId"], env["convertedoppId"])
+	}
+	assert.Equal(t, "Discovery", cOpp["sub_stage__c"])
+	cOwner, ok := cOpp["owner"].(map[string]any)
+	require.True(t, ok, "convertedoppId.owner should be nested map")
+	assert.Equal(t, "John", cOwner["name"])
+
+	// Account — flat "001XYZ" + dotted children (same conflict pattern)
+	acc, ok := env["Account"].(map[string]any)
+	if !ok {
+		t.Fatalf("Account should be nested map but got %T (%v)",
+			env["Account"], env["Account"])
+	}
+	assert.Equal(t, "Acme Corp", acc["Name"])
+	accOwner, ok := acc["Owner"].(map[string]any)
+	require.True(t, ok, "Account.Owner should be nested map")
+	assert.Equal(t, "acme@test.com", accOwner["Email"])
+}
+
+func TestInflateEnv_ExprRunWithDottedConvertedOpp(t *testing.T) {
+	// End-to-end: inflate + compile + run with convertedoppId.sub_stage__c
+	flat := map[string]any{
+		"$User.role.name":             "Admin",
+		"convertedoppId.sub_stage__c": "Negotiation",
+	}
+	env := expr.InflateEnv(flat)
+
+	tests := []struct {
+		name string
+		expr string
+		want any
+	}{
+		{"user role access", `$User.role.name == "Admin"`, true},
+		{"convertedopp sub_stage", `convertedoppId.sub_stage__c == "Negotiation"`, true},
+		{"convertedopp contains", `CONTAINS(convertedoppId.sub_stage__c, "Negot")`, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := expr.Compile(tt.expr,
+				expr.Env(env),
+				expr.AllowUndefinedVariables(),
+				expr.WithAllFormulaPacks(),
+			)
+			require.NoError(t, err)
+			result, err := expr.Run(program, env)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Test InflateEnv + expr.Run for dotted field access
 // ---------------------------------------------------------------------------
 
