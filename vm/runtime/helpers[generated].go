@@ -1420,12 +1420,12 @@ func EqualIn(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
-	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
-	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
-		return time.Time{}.Before(tb)
+	// "" or 0 compared with time.Time always returns false
+	if _, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return false
 	}
-	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
-		return ta.Before(time.Time{})
+	if _, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return false
 	}
 
 	// Handle date comparison
@@ -1918,12 +1918,12 @@ func Less(a, b interface{}) bool {
 }
 
 func More(a, b interface{}) bool {
-	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
-	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
-		return time.Time{}.After(tb)
+	// "" or 0 compared with time.Time always returns false
+	if _, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return false
 	}
-	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
-		return ta.After(time.Time{})
+	if _, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return false
 	}
 
 	// Handle date comparison
@@ -2379,14 +2379,12 @@ func More(a, b interface{}) bool {
 }
 
 func LessOrEqual(a, b interface{}) bool {
-	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
-	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
-		z := time.Time{}
-		return z.Before(tb) || z.Equal(tb)
+	// "" or 0 compared with time.Time always returns false
+	if _, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return false
 	}
-	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
-		z := time.Time{}
-		return ta.Before(z) || ta.Equal(z)
+	if _, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return false
 	}
 
 	// Handle date comparison
@@ -2855,14 +2853,12 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
-	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
-	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
-		z := time.Time{}
-		return z.After(tb) || z.Equal(tb)
+	// "" or 0 compared with time.Time always returns false
+	if _, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return false
 	}
-	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
-		z := time.Time{}
-		return ta.After(z) || ta.Equal(z)
+	if _, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return false
 	}
 
 	// Handle date comparison

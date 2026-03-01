@@ -1132,21 +1132,19 @@ func TestSFFormula_EmptyAndZeroDateComparison(t *testing.T) {
 		env  map[string]any
 		want any
 	}{
-		// "" vs DATEVALUE: empty string treated as "no date", always less than a real date
+		// any comparison between "" or 0 and time.Time always returns false
 		{name: "empty_gt_datevalue", expr: `"" > DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
-		{name: "empty_lt_datevalue", expr: `"" < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
+		{name: "empty_lt_datevalue", expr: `"" < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
 		{name: "empty_gte_datevalue", expr: `"" >= DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
-		{name: "empty_lte_datevalue", expr: `"" <= DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
-		// DATEVALUE vs "": reversed
-		{name: "datevalue_gt_empty", expr: `DATEVALUE(D) > ""`, env: map[string]any{"D": someDate}, want: true},
+		{name: "empty_lte_datevalue", expr: `"" <= DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
+		{name: "datevalue_gt_empty", expr: `DATEVALUE(D) > ""`, env: map[string]any{"D": someDate}, want: false},
 		{name: "datevalue_lt_empty", expr: `DATEVALUE(D) < ""`, env: map[string]any{"D": someDate}, want: false},
-		// 0 vs DATEVALUE: numeric zero treated as "no date"
+		{name: "datevalue_gte_empty", expr: `DATEVALUE(D) >= ""`, env: map[string]any{"D": someDate}, want: false},
+		{name: "datevalue_lte_empty", expr: `DATEVALUE(D) <= ""`, env: map[string]any{"D": someDate}, want: false},
 		{name: "zero_gt_datevalue", expr: `0 > DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
-		{name: "zero_lt_datevalue", expr: `0 < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
-		// DATEVALUE vs 0: reversed
-		{name: "datevalue_gt_zero", expr: `DATEVALUE(D) > 0`, env: map[string]any{"D": someDate}, want: true},
+		{name: "zero_lt_datevalue", expr: `0 < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
+		{name: "datevalue_gt_zero", expr: `DATEVALUE(D) > 0`, env: map[string]any{"D": someDate}, want: false},
 		{name: "datevalue_lt_zero", expr: `DATEVALUE(D) < 0`, env: map[string]any{"D": someDate}, want: false},
-		// "" and 0 vs a date field directly (not via DATEVALUE)
 		{name: "empty_gt_date_field", expr: `"" > D`, env: map[string]any{"D": someDate}, want: false},
 		{name: "zero_gt_date_field", expr: `0 > D`, env: map[string]any{"D": someDate}, want: false},
 	}
