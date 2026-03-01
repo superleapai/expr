@@ -8,6 +8,40 @@ import (
 	"time"
 )
 
+// isEmptyOrNumericZero returns true if v is "" (empty string) or any numeric zero.
+// Used to allow expressions like `"" > DATEVALUE(x)` or `0 > DATEVALUE(x)`.
+func isEmptyOrNumericZero(v interface{}) bool {
+	switch x := v.(type) {
+	case string:
+		return x == ""
+	case int:
+		return x == 0
+	case int8:
+		return x == 0
+	case int16:
+		return x == 0
+	case int32:
+		return x == 0
+	case int64:
+		return x == 0
+	case uint:
+		return x == 0
+	case uint8:
+		return x == 0
+	case uint16:
+		return x == 0
+	case uint32:
+		return x == 0
+	case uint64:
+		return x == 0
+	case float32:
+		return x == 0
+	case float64:
+		return x == 0
+	}
+	return false
+}
+
 // Safe version of ToFloat64 that returns error instead of panicking
 func ToFloat64Safe(a any) (float64, bool) {
 	if IsNil(a) {
@@ -1386,6 +1420,14 @@ func EqualIn(a, b interface{}) bool {
 }
 
 func Less(a, b interface{}) bool {
+	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
+	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return time.Time{}.Before(tb)
+	}
+	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return ta.Before(time.Time{})
+	}
+
 	// Handle date comparison
 	if ta, ok := a.(time.Time); ok {
 		if tb, ok2 := b.(time.Time); ok2 {
@@ -1876,6 +1918,14 @@ func Less(a, b interface{}) bool {
 }
 
 func More(a, b interface{}) bool {
+	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
+	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		return time.Time{}.After(tb)
+	}
+	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		return ta.After(time.Time{})
+	}
+
 	// Handle date comparison
 	if ta, ok := a.(time.Time); ok {
 		if tb, ok2 := b.(time.Time); ok2 {
@@ -2329,6 +2379,16 @@ func More(a, b interface{}) bool {
 }
 
 func LessOrEqual(a, b interface{}) bool {
+	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
+	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		z := time.Time{}
+		return z.Before(tb) || z.Equal(tb)
+	}
+	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		z := time.Time{}
+		return ta.Before(z) || ta.Equal(z)
+	}
+
 	// Handle date comparison
 	if ta, ok := a.(time.Time); ok {
 		if tb, ok2 := b.(time.Time); ok2 {
@@ -2795,6 +2855,16 @@ func LessOrEqual(a, b interface{}) bool {
 }
 
 func MoreOrEqual(a, b interface{}) bool {
+	// Handle "" or 0 vs time.Time: treat empty string and numeric zero as "no date" (zero time)
+	if tb, ok := b.(time.Time); ok && isEmptyOrNumericZero(a) {
+		z := time.Time{}
+		return z.After(tb) || z.Equal(tb)
+	}
+	if ta, ok := a.(time.Time); ok && isEmptyOrNumericZero(b) {
+		z := time.Time{}
+		return ta.After(z) || ta.Equal(z)
+	}
+
 	// Handle date comparison
 	if ta, ok := a.(time.Time); ok {
 		if tb, ok2 := b.(time.Time); ok2 {

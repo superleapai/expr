@@ -1123,6 +1123,44 @@ func TestSFFormula_BLANKVALUE(t *testing.T) {
 	}
 }
 
+func TestSFFormula_EmptyAndZeroDateComparison(t *testing.T) {
+	opts := sfOpts()
+	someDate := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		expr string
+		env  map[string]any
+		want any
+	}{
+		// "" vs DATEVALUE: empty string treated as "no date", always less than a real date
+		{name: "empty_gt_datevalue", expr: `"" > DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
+		{name: "empty_lt_datevalue", expr: `"" < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
+		{name: "empty_gte_datevalue", expr: `"" >= DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
+		{name: "empty_lte_datevalue", expr: `"" <= DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
+		// DATEVALUE vs "": reversed
+		{name: "datevalue_gt_empty", expr: `DATEVALUE(D) > ""`, env: map[string]any{"D": someDate}, want: true},
+		{name: "datevalue_lt_empty", expr: `DATEVALUE(D) < ""`, env: map[string]any{"D": someDate}, want: false},
+		// 0 vs DATEVALUE: numeric zero treated as "no date"
+		{name: "zero_gt_datevalue", expr: `0 > DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: false},
+		{name: "zero_lt_datevalue", expr: `0 < DATEVALUE(D)`, env: map[string]any{"D": someDate}, want: true},
+		// DATEVALUE vs 0: reversed
+		{name: "datevalue_gt_zero", expr: `DATEVALUE(D) > 0`, env: map[string]any{"D": someDate}, want: true},
+		{name: "datevalue_lt_zero", expr: `DATEVALUE(D) < 0`, env: map[string]any{"D": someDate}, want: false},
+		// "" and 0 vs a date field directly (not via DATEVALUE)
+		{name: "empty_gt_date_field", expr: `"" > D`, env: map[string]any{"D": someDate}, want: false},
+		{name: "zero_gt_date_field", expr: `0 > D`, env: map[string]any{"D": someDate}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := expr.Compile(tt.expr, append(opts, expr.Env(tt.env))...)
+			require.NoError(t, err)
+			got, err := expr.Run(program, tt.env)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestSFFormula_NULLVALUE(t *testing.T) {
 	opts := sfOpts()
 	tests := []struct {
